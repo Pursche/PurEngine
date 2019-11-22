@@ -1,5 +1,6 @@
 # Prerequisites
 *.d
+*.pdb
 
 # Compiled Object files
 *.slo
@@ -33,3 +34,12 @@
 
 bin/
 build/
+
+# Allow specifics
+!premake/premake5.exe
+!External/capnproto/bin
+!External/capnproto/bin/*.exe
+!External/capnproto/bin/*.dll
+!External/dxc/bin
+!External/dxc/bin/*.exe
+!External/dxc/bin/*.dll
