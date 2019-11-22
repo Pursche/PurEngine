@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>capnpc-csharp-win-x86</id>
+    <version>1.0.71</version>
+    <title>capnpc-csharp (Install)</title>
+    <authors>Christian Köllner and contributors</authors>
+    <owners>Christian Köllner</owners>
+    <licenseUrl>https://github.com/c80k/capnproto-dotnetcore/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/c80k/capnproto-dotnetcore</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Cap'n Proto C# code generator backend, self-contained Windows x86</description>
+    <summary>Cap'n Proto C# code generator backend. This is the self-contained variant. It requires Windows x86/x64 
+    (as opposed to the capnpc-csharp package, which is CPU-independent but requires a .NET Core runtime)</summary>
+    <releaseNotes>https://github.com/c80k/capnproto-dotnetcore/releases/tag/v1.0.71</releaseNotes>
+    <copyright>Christian Köllner and contributors</copyright>
+    <tags>capnp capnpc RPC serialization cerealization</tags>
+    <projectSourceUrl>https://github.com/c80k/capnproto-dotnetcore</projectSourceUrl>
+    <packageSourceUrl>https://github.com/c80k/capnproto-dotnetcore/tree/master/chocolatey</packageSourceUrl>
+    <docsUrl>https://github.com/c80k/capnproto-dotnetcore/wiki</docsUrl>
+    <bugTrackerUrl>https://github.com/c80k/capnproto-dotnetcore/issues</bugTrackerUrl>
+    <dependencies>
+      <dependency id="capnproto" version="0.7.0" />
+    </dependencies>
+  </metadata>
+</package>
