@@ -190,7 +190,7 @@ int win32Socketpair(SOCKET socks[2]) {
 namespace {
 
 bool detectWine() {
-  HMODULE hntdll = GetModuleHandle("ntdll.dll");
+  HMODULE hntdll = GetModuleHandle(L"ntdll.dll");
   if(hntdll == NULL) return false;
   return GetProcAddress(hntdll, "wine_get_version") != nullptr;
 }

@@ -142,7 +142,7 @@ VOID CALLBACK testApcProc(ULONG_PTR dwParam) {
 }
 
 KJ_TEST("Win32IocpEventPort APC") {
-  if (GetProcAddress(GetModuleHandle("ntdll.dll"), "wine_get_version") != nullptr) {
+  if (GetProcAddress(GetModuleHandle(L"ntdll.dll"), "wine_get_version") != nullptr) {
     // TODO(cleanup): Periodically check if Wine supports this yet.
     KJ_LOG(WARNING, "detected that we're running under wine and this test won't work; skipping");
     return;

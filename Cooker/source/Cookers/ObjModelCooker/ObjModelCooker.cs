@@ -35,29 +35,13 @@ namespace Cooker.Cookers
         public override bool CanCook(string luaPath, LuaGlobal environment, out string error)
         {
             error = "";
-            string shaderPath = GetAssetPath(luaPath);
-
-            if (!File.Exists(shaderPath))
-            {
-                error = "Asset does not exist";
-                return false;
-            }
-
-            if (!shaderPath.EndsWith(".hlsl"))
-            {
-                error = "We only convert .hlsl shader files";
-                return false;
-            }
-
-            return true;
+            return false;
         }
 
         public override bool Cook(string luaPath, LuaGlobal environment, string outputDirectory, string intermediateDirectory, out string producedFile, out string error)
         {
             error = "";
             producedFile = "";
-            string shaderPath = GetAssetPath(luaPath);
-
             return false;
         }
 

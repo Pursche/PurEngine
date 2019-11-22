@@ -43,3 +43,5 @@ build/
 !External/dxc/bin
 !External/dxc/bin/*.exe
 !External/dxc/bin/*.dll
+# The model format...
+!Content/content/*.obj

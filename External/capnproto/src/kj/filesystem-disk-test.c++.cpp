@@ -43,7 +43,7 @@ bool isWine() KJ_UNUSED;
 #if _WIN32
 
 bool detectWine() {
-  HMODULE hntdll = GetModuleHandle("ntdll.dll");
+  HMODULE hntdll = GetModuleHandle(L"ntdll.dll");
   if(hntdll == NULL) return false;
   return GetProcAddress(hntdll, "wine_get_version") != nullptr;
 }

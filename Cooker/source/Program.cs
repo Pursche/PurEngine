@@ -134,8 +134,6 @@ namespace Cooker
                     {
                         errors.Add(error + " (" + cooker.GetType().GetTypeInfo().Name + ")");
                     }
-
-                    break;
                 }
 
                 if (!availableCooker)
