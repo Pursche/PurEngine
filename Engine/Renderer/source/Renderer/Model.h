@@ -52,8 +52,11 @@ public:
 
     ID3D12Resource*& GetConstantBuffer(u32 frameIndex) { return _constantBufferUploadHeap[frameIndex]; }
     ConstantBuffer*& GetConstantBufferGPUAdress(u32 frameIndex) { return _constantBufferGPUAddress[frameIndex]; }
-private:
 
+    bool LoadFromFile(const std::string& filePath);
+private:
+    
+    
 private:
     Matrix _matrix;
     std::vector<Vertex> _vertices;

@@ -1,12 +1,17 @@
 #include "Model.h"
 #include "DX12/d3dx12.h"
 
+#include <Types/CapModel.capnp.h>
+#include <capnp/message.h>
+#include <capnp/serialize-packed.h>
+#include <fstream>
+
 Model::Model()
     : _matrix()
     , _isBuffersCreated(false)
 {
     // Create a quad for now
-    _vertices.push_back(Vertex(Vector3(-0.5f, 0.5f, 0.5f), Vector4(1, 0, 0, 1))); // top left
+    /*_vertices.push_back(Vertex(Vector3(-0.5f, 0.5f, 0.5f), Vector4(1, 0, 0, 1))); // top left
     _vertices.push_back(Vertex(Vector3(0.5f, -0.5f, 0.5f), Vector4(0, 1, 0, 1))); // bottom right
     _vertices.push_back(Vertex(Vector3(-0.5f, -0.5f, 0.5f), Vector4(0, 0, 1, 1))); // bottom left
     _vertices.push_back(Vertex(Vector3(0.5f, 0.5f, 0.5f), Vector4(0, 1, 1, 1))); // top right
@@ -19,7 +24,7 @@ Model::Model()
     _indices.push_back(0);
     _indices.push_back(3);
     _indices.push_back(1);
-
+    */
     /*
         { -0.5f,  0.5f, 0.5f }, // top left
         {  0.5f, -0.5f, 0.5f }, // bottom right
@@ -40,4 +45,14 @@ Model::~Model()
     {
         SAFE_RELEASE(_constantBufferUploadHeap[i]);
     };
+}
+
+bool Model::LoadFromFile(const std::string& filePath)
+{
+    std::ifstream file;
+    file.open(filePath);
+
+    // capnp::PackedMessageReader message(kj::BufferedInputStream(file)); Something like this?
+
+    return true;
 }
