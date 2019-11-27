@@ -2,7 +2,6 @@
 struct VS_INPUT
 {
     float3 pos : POSITION;
-    float4 color: COLOR;
 };
 
 struct VS_OUTPUT
@@ -11,17 +10,26 @@ struct VS_OUTPUT
     float4 color: COLOR;
 };
 
-struct MODEL_CB
+struct VIEW_CB
 {
-    float4 colorMultiplier;
+    float4x4 view;
+    float4x4 proj;
 };
 
-ConstantBuffer<MODEL_CB> modelCB : register(b0);
+struct MODEL_CB
+{
+    float4 color;
+    float4x4 model;
+};
+
+ConstantBuffer<VIEW_CB> viewCB : register(b0);
+ConstantBuffer<MODEL_CB> modelCB : register(b1);
 
 VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
-    output.pos = float4(input.pos, 1.0f);
-    output.color = input.color * modelCB.colorMultiplier;
+
+    output.pos = mul(mul(mul(float4(input.pos, 1.0f), modelCB.model), viewCB.view), viewCB.proj);
+    output.color = modelCB.color;
     return output;
 }

@@ -1,0 +1,2 @@
+channelMask = "RGBA" -- Possible values: R - Red, G - Green, B - Blue, A - Alpha, N - None. Examples: RGBA, RGBN, ARGB, RGNA etc etc
+channelBitness = {8, 8, 8, 8} -- Possible values: 0, 1, 8, 16, 32

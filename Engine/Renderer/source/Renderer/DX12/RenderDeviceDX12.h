@@ -26,10 +26,14 @@ public:
 
     ID3D12Device* GetDevice() { return _device; }
     DXGI_SAMPLE_DESC* GetSampleDesc() { return _sampleDesc; }
+
+    ID3D12GraphicsCommandList* GetCopyCommandList() { return _copyCommandList; }
+    ID3D12DescriptorHeap* GetMainDescriptorHeap() { return _mainDescriptorHeap[_frameIndex]; }
 private:
     void EnableShaderBasedValidation();
     
     void UpdatePipeline();
+    void UpdateViewCB();
 
 private:
     ID3D12Device* _device;
@@ -66,4 +70,8 @@ private:
 
     ShaderHandler* _shaderHandler;
     PipelineHandler* _pipelineHandler;
+
+    ID3D12Resource* _viewConstantBufferUploadHeap[frameBufferCount];
+    ViewConstantBuffer* _viewConstantBufferGPUAddress[frameBufferCount];
+
 };

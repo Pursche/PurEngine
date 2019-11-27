@@ -3,11 +3,6 @@
 #include <vector>
 #include "RenderSettings.h"
 
-#pragma warning(push)
-#pragma warning(disable: 4100 4244 4267 4127 4245) // CapNProto doesn't give a fuck about warnings :(
-#include <Types/CapModel.capnp.h>
-#pragma warning(pop)
-
 struct ID3D12Resource;
 struct D3D12_VERTEX_BUFFER_VIEW;
 struct D3D12_INDEX_BUFFER_VIEW;
@@ -15,20 +10,23 @@ struct D3D12_INDEX_BUFFER_VIEW;
 class Model
 {
 public:
+    // This struct needs to be 256 bytes padded
     struct ConstantBuffer
     {
-        Vector4 colorMultiplier;
+        Vector4 colorMultiplier; // 16 bytes
+        Matrix modelMatrix; // 64 bytes
+        float padding[176];
     };
 
     struct Vertex
     {
-        Vertex(Vector3 inPos, Vector4 inColor)
+        Vertex()
+        {}
+        Vertex(Vector3 inPos)
         {
             pos = inPos;
-            color = inColor;
         }
         Vector3 pos;
-        Vector4 color;
     };
 
     Model();
@@ -54,6 +52,7 @@ public:
     ConstantBuffer*& GetConstantBufferGPUAdress(u32 frameIndex) { return _constantBufferGPUAddress[frameIndex]; }
 
     bool LoadFromFile(const std::string& filePath);
+    void MakeQuad();
 private:
     
     
@@ -62,9 +61,9 @@ private:
     std::vector<Vertex> _vertices;
     std::vector<u32> _indices;
     bool _isBuffersCreated;
+    ConstantBuffer _constantBuffer;
 
     // TODO: Abstract these
-    ConstantBuffer _constantBuffer;
     ID3D12Resource* _vertexBuffer;
     ID3D12Resource* _indexBuffer;
     D3D12_VERTEX_BUFFER_VIEW* _vertexBufferView;

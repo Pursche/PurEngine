@@ -24,6 +24,8 @@ bool Renderer::Init(Window* window, int width, int height)
     }
 
     _model = new Model();
+    _model->LoadFromFile("Data/models/Cube.purmodel");
+    //_model->MakeQuad();
     return true;
 }
 
@@ -35,6 +37,7 @@ void Renderer::Update(f32 deltaTime)
     {
         constantBuffer.colorMultiplier = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
     }
+    constantBuffer.modelMatrix = _model->GetMatrix().Transposed();
 }
 
 void Renderer::Render()
@@ -51,4 +54,10 @@ void Renderer::WaitForFrame()
 void Renderer::Cleanup()
 {
     _device->Cleanup();
+}
+
+void Renderer::SetViewMatrix(const Matrix& viewMatrix)
+{
+    ViewConstantBuffer& cb = _device->GetViewConstantBuffer();
+    cb.view = viewMatrix.Transposed();
 }

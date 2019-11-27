@@ -18,6 +18,8 @@ public:
     void WaitForFrame();
     void Cleanup();
 
+    void SetViewMatrix(const Matrix& viewMatrix);
+
 private:
 
 private:

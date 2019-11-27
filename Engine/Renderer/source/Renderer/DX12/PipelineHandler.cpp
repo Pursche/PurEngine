@@ -27,28 +27,26 @@ bool PipelineHandler::CreatePipeline(RenderDeviceDX12* device, PipelineDesc& des
     LoadedPipeline loadedPipeline;
     loadedPipeline.handle = PipelineHandle(static_cast<type>(nextHandle));
 
-    // -- create root descriptor table --
-    D3D12_DESCRIPTOR_RANGE  descriptorTableRanges[1]; // only one range right now
-    descriptorTableRanges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; // this is a range of constant buffer views (descriptors)
-    descriptorTableRanges[0].NumDescriptors = 1; // we only have one constant buffer, so the range is only 1
-    descriptorTableRanges[0].BaseShaderRegister = 0; // start index of the shader registers in the range
-    descriptorTableRanges[0].RegisterSpace = 0; // space 0. can usually be zero
-    descriptorTableRanges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND; // this appends the range to the end of the root signature descriptor tables
+    // -- create root descriptors --
+    D3D12_ROOT_DESCRIPTOR viewCBVDescriptor;
+    viewCBVDescriptor.RegisterSpace = 0;
+    viewCBVDescriptor.ShaderRegister = 0;
 
-    D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
-    descriptorTable.NumDescriptorRanges = _countof(descriptorTableRanges); // we only have one range
-    descriptorTable.pDescriptorRanges = &descriptorTableRanges[0]; // the pointer to the beginning of our ranges array
+    D3D12_ROOT_DESCRIPTOR modelCBVDescriptor;
+    modelCBVDescriptor.RegisterSpace = 0;
+    modelCBVDescriptor.ShaderRegister = 1;
 
-
-    // -- create root parameter --
-    D3D12_ROOT_PARAMETER  rootParameters[1]; // only one parameter right now
-    rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE; // this is a descriptor table
-    rootParameters[0].DescriptorTable = descriptorTable; // this is our descriptor table for this root parameter
+    // create a root parameter and fill it out
+    D3D12_ROOT_PARAMETER  rootParameters[2]; // two parameters right now
+    rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // this is a constant buffer view root descriptor
+    rootParameters[0].Descriptor = viewCBVDescriptor; // this is the root descriptor for this root parameter
     rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // our pixel shader will be the only shader accessing this parameter for now
+    rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV; // this is a constant buffer view root descriptor
+    rootParameters[1].Descriptor = modelCBVDescriptor; // this is the root descriptor for this root parameter
+    rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX; // our pixel shader will be the only shader accessing this parameter for now
 
-    // -- create root signature --
     CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    rootSignatureDesc.Init(_countof(rootParameters), // we have 1 root parameter
+    rootSignatureDesc.Init(_countof(rootParameters), // we have 2 root parameter
         rootParameters, // a pointer to the beginning of our root parameters array
         0,
         nullptr,
@@ -70,8 +68,7 @@ bool PipelineHandler::CreatePipeline(RenderDeviceDX12* device, PipelineDesc& des
     // -- create input layout --
     D3D12_INPUT_ELEMENT_DESC inputLayout[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
     };
 
     // fill out an input layout description structure

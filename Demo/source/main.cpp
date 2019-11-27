@@ -5,13 +5,11 @@
 #include <Window/Window.h>
 #include <Renderer/Renderer.h>
 
+#include "Camera.h"
+
 INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     PSTR /*lpCmdLine*/, INT nCmdShow)
 {
-    Vector3 a = Vector3(1, 1, 1);
-    Vector3 b = Vector3(2, 2, 2);
-    Vector3 c = a - b;
-
     const int width = 1280;
     const int height = 720;
 
@@ -22,6 +20,8 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     {
         mainWindow.SendMessageBox("Error", "Failed to initialize direct3d 12");
     }
+
+    Camera camera(Vector3(0,0,-5));
 
     Timer timer;
     while (true)
@@ -37,6 +37,10 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
             break;
         }
         mainWindow.Update(deltaTime);
+
+        camera.Update(deltaTime);
+
+        renderer.SetViewMatrix(camera.GetViewMatrix().Inverted());
         renderer.Update(deltaTime);
         renderer.Render();
     }

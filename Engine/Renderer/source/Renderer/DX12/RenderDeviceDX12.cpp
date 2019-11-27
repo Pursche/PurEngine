@@ -232,6 +232,31 @@ bool RenderDeviceDX12::Init(Window* window, int width, int height)
         if (FAILED(result))
             return false;
     }
+
+    // -- VIEW CONSTANT BUFFER --
+    ZeroMemory(&_viewConstantBuffer, sizeof(_viewConstantBuffer));
+    for (int i = 0; i < frameBufferCount; ++i)
+    {
+        result = _device->CreateCommittedResource(
+            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
+            D3D12_HEAP_FLAG_NONE, // no flags
+            &CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
+            D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
+            nullptr, // we do not have use an optimized clear value for constant buffers
+            IID_PPV_ARGS(&_viewConstantBufferUploadHeap[i]));
+        assert(SUCCEEDED(result));
+
+        result = _viewConstantBufferUploadHeap[i]->SetName(L"Constant Buffer Upload Resource Heap");
+        assert(SUCCEEDED(result));
+
+        CD3DX12_RANGE readRange(0, 0);
+
+        // Map the resource heap to get a gpu virtual address to the beginning of the heap
+        result = _viewConstantBufferUploadHeap[i]->Map(0, &readRange, reinterpret_cast<void**>(reinterpret_cast<void**>(&_viewConstantBufferGPUAddress[i])));
+        assert(SUCCEEDED(result));
+
+        memcpy(_viewConstantBufferGPUAddress[i], &_viewConstantBuffer, sizeof(_viewConstantBuffer));
+    }
     
     return true;
 }
@@ -262,11 +287,11 @@ void RenderDeviceDX12::Render()
 void RenderDeviceDX12::Cleanup()
 {
     // wait for the gpu to finish all frames
-    //for (int i = 0; i < frameBufferCount; ++i)
-    //{
-    //    _frameIndex = i;
+    for (int i = 0; i < frameBufferCount; ++i)
+    {
+        _frameIndex = i;
         WaitForFrame();
-    //}
+    }
 
     // get swapchain out of full screen before exiting
     BOOL fs = false;
@@ -304,7 +329,7 @@ void RenderDeviceDX12::RegisterModel(Model* model)
 void RenderDeviceDX12::InitModel(Model* model)
 {
     HRESULT result;
-    result = _commandList->Reset(_commandAllocator[_frameIndex], NULL);
+    result = _copyCommandList->Reset(_commandAllocator[_frameIndex], NULL);
     assert(SUCCEEDED(result));
 
     // -- VERTEX BUFFER --
@@ -347,10 +372,10 @@ void RenderDeviceDX12::InitModel(Model* model)
     vertexData.SlicePitch = vertexBufferSize; // also the size of our triangle vertex data
 
     // Copy data from upload buffer to vertex buffer
-    UpdateSubresources(_commandList, vertexBuffer, vertexBufferUploadHeap, 0, 0, 1, &vertexData);
+    UpdateSubresources(_copyCommandList, vertexBuffer, vertexBufferUploadHeap, 0, 0, 1, &vertexData);
 
     // Transition the vertex buffer from copy destination state to vertex buffer state
-    _commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+    _copyCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
     // -- INDEX BUFFER --
     std::vector<u32>& indices = model->GetIndices();
@@ -392,15 +417,15 @@ void RenderDeviceDX12::InitModel(Model* model)
     indexData.SlicePitch = indexBufferSize; // also the size of our triangle index data
 
     // Copy data from upload buffer to index buffer
-    UpdateSubresources(_commandList, indexBuffer, indexBufferUploadHeap, 0, 0, 1, &indexData);
+    UpdateSubresources(_copyCommandList, indexBuffer, indexBufferUploadHeap, 0, 0, 1, &indexData);
 
     // Transition the index buffer from copy destination state to index buffer state
-    _commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+    _copyCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
     // -- CONSTANT BUFFER --
     for (int i = 0; i < frameBufferCount; ++i)
     {
-        ID3D12Resource* constantBufferUploadHeap = model->GetConstantBuffer(i);
+        ID3D12Resource*& constantBufferUploadHeap = model->GetConstantBuffer(i);
 
         result = _device->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // this heap will be used to upload the constant buffer data
@@ -414,23 +439,17 @@ void RenderDeviceDX12::InitModel(Model* model)
         result = constantBufferUploadHeap->SetName(L"Constant Buffer Upload Resource Heap");
         assert(SUCCEEDED(result));
 
-        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-        cbvDesc.BufferLocation = constantBufferUploadHeap->GetGPUVirtualAddress();
-        cbvDesc.SizeInBytes = (sizeof(Model::ConstantBuffer) + 255) & ~255;    // CB size is required to be 256-byte aligned.
-        _device->CreateConstantBufferView(&cbvDesc, _mainDescriptorHeap[i]->GetCPUDescriptorHandleForHeapStart());
+        CD3DX12_RANGE readRange(0, 0);
 
-        ZeroMemory(&model->GetConstants(), sizeof(model->GetConstants()));
-
-        CD3DX12_RANGE readRange(0, 0);    // We do not intend to read from this resource on the CPU. (End is less than or equal to begin)
-        result = constantBufferUploadHeap->Map(0, &readRange, reinterpret_cast<void**>(&model->GetConstantBufferGPUAdress(i)));
+        // Map the resource heap to get a gpu virtual address to the beginning of the heap
+        result = constantBufferUploadHeap->Map(0, &readRange, reinterpret_cast<void**>(reinterpret_cast<void**>(&model->GetConstantBufferGPUAdress(i))));
         assert(SUCCEEDED(result));
-
         memcpy(model->GetConstantBufferGPUAdress(i), &model->GetConstants(), sizeof(model->GetConstants()));
     }
 
     // Execute command list
-    _commandList->Close();
-    ID3D12CommandList* ppCommandLists[] = { _commandList };
+    _copyCommandList->Close();
+    ID3D12CommandList* ppCommandLists[] = { _copyCommandList };
     _commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
     // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
@@ -515,7 +534,6 @@ void RenderDeviceDX12::UpdatePipeline()
     // anything but an initial default pipeline, which is what we get by setting
     // the second parameter to NULL
 
-
     ID3D12PipelineState* pso = _pipelineHandler->GetPSO(_pipelineHandle);
     result = _commandList->Reset(_commandAllocator[_frameIndex], pso);
     assert(SUCCEEDED(result));
@@ -540,6 +558,8 @@ void RenderDeviceDX12::UpdatePipeline()
     _commandList->RSSetViewports(1, &_viewport); // set the viewports
     _commandList->RSSetScissorRects(1, &_scissorRect); // set the scissor rects
 
+    UpdateViewCB();
+
     // Draw models
     for (Model* model : _modelsToRender)
     {
@@ -549,8 +569,7 @@ void RenderDeviceDX12::UpdatePipeline()
         ID3D12DescriptorHeap* descriptorHeaps[] = { _mainDescriptorHeap[_frameIndex] };
         _commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-        // set the root descriptor table 0 to the constant buffer descriptor heap
-        _commandList->SetGraphicsRootDescriptorTable(0, _mainDescriptorHeap[_frameIndex]->GetGPUDescriptorHandleForHeapStart());
+        _commandList->SetGraphicsRootConstantBufferView(1, model->GetConstantBuffer(_frameIndex)->GetGPUVirtualAddress());
 
         _commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // set the primitive topology
         _commandList->IASetVertexBuffers(0, 1, model->GetVertexBufferView()); // set the vertex buffer (using the vertex buffer view)
@@ -566,4 +585,30 @@ void RenderDeviceDX12::UpdatePipeline()
     assert(SUCCEEDED(result));
 
     _modelsToRender.clear();
+}
+
+void RenderDeviceDX12::UpdateViewCB()
+{
+    UINT width, height;
+    _swapChain->GetSourceSize(&width, &height);
+
+    // Proj matrix
+    const f32 fov = (68.0f) / 2.0f;
+    const f32 nearClip = 0.1f;
+    const f32 farClip = 10.0f;
+    f32 aspectRatio = static_cast<f32>(width) / static_cast<f32>(height);
+
+    f32 tanFov = Math::Tan(Math::DegToRad(fov));
+    _viewConstantBuffer.proj.right.x = 1.0f / (tanFov * aspectRatio);
+    _viewConstantBuffer.proj.up.y = 1.0f / tanFov;
+    _viewConstantBuffer.proj.at.z = -(farClip + nearClip) / (nearClip - farClip);
+    _viewConstantBuffer.proj.pos.z = 2 * farClip * nearClip / (nearClip - farClip);
+    _viewConstantBuffer.proj.pad3 = 1.0f;
+    _viewConstantBuffer.proj.pad4 = 0.0f;
+    _viewConstantBuffer.proj.Transpose();
+
+
+    // Update view constantbuffer
+    memcpy(_viewConstantBufferGPUAddress[_frameIndex], &_viewConstantBuffer, sizeof(_viewConstantBuffer));
+    _commandList->SetGraphicsRootConstantBufferView(0, _viewConstantBufferUploadHeap[_frameIndex]->GetGPUVirtualAddress());
 }

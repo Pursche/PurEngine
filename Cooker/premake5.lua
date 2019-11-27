@@ -17,7 +17,7 @@ project (COOKER_NAME)
     
     nuget { "DynamicLanguageRuntime:1.2.2", "NeoLua:1.3.11", "Capnp.Net.Runtime:1.1.112" }
     files { "source/**.cs" }
-    links { "System","System.Core","Microsoft.CSharp","System.Runtime.Serialization","System.ComponentModel.DataAnnotations", "Microsoft.Scripting", "Neo.IronLua" }
+    links { "System","System.Core","Microsoft.CSharp","System.Runtime.Serialization","System.ComponentModel.DataAnnotations", "Microsoft.Scripting", "Neo.IronLua", "System.Drawing", "System.Drawing.Imaging" }
     
     filter "configurations:Debug"
         defines { "TRACE", "DEBUG", "CSHARP" }

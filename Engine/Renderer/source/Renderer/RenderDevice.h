@@ -4,6 +4,15 @@
 class Window;
 class Model;
 
+// Each matrix is 64 bytes, this struct needs to be 256 bytes padded
+struct ViewConstantBuffer
+{
+    Matrix view;
+    Matrix proj;
+
+    float padding[128];
+};
+
 class RenderDevice
 {
 public:
@@ -16,8 +25,10 @@ public:
 
     // Function to register a model to be rendered this frame  TODO: Some kind of render bucket system instead
     virtual void RegisterModel(Model* model) = 0;
+
+    ViewConstantBuffer& GetViewConstantBuffer() { return _viewConstantBuffer; }
 private:
 
-private:
-
+protected:
+    ViewConstantBuffer _viewConstantBuffer;
 };

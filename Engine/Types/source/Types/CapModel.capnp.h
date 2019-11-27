@@ -15,6 +15,8 @@ namespace capnp {
 namespace schemas {
 
 CAPNP_DECLARE_SCHEMA(b747ed917331d47a);
+CAPNP_DECLARE_SCHEMA(8f4ec38ef88be8c5);
+CAPNP_DECLARE_SCHEMA(df2a047c1f67783f);
 CAPNP_DECLARE_SCHEMA(9edfc4cfa960c55d);
 
 }  // namespace schemas
@@ -30,6 +32,36 @@ struct CapVector3 {
 
   struct _capnpPrivate {
     CAPNP_DECLARE_STRUCT_HEADER(b747ed917331d47a, 2, 0)
+    #if !CAPNP_LITE
+    static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
+    #endif  // !CAPNP_LITE
+  };
+};
+
+struct CapVector2 {
+  CapVector2() = delete;
+
+  class Reader;
+  class Builder;
+  class Pipeline;
+
+  struct _capnpPrivate {
+    CAPNP_DECLARE_STRUCT_HEADER(8f4ec38ef88be8c5, 1, 0)
+    #if !CAPNP_LITE
+    static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
+    #endif  // !CAPNP_LITE
+  };
+};
+
+struct CapVertex {
+  CapVertex() = delete;
+
+  class Reader;
+  class Builder;
+  class Pipeline;
+
+  struct _capnpPrivate {
+    CAPNP_DECLARE_STRUCT_HEADER(df2a047c1f67783f, 0, 3)
     #if !CAPNP_LITE
     static constexpr ::capnp::_::RawBrandedSchema const* brand() { return &schema->defaultBrand; }
     #endif  // !CAPNP_LITE
@@ -139,6 +171,191 @@ private:
 };
 #endif  // !CAPNP_LITE
 
+class CapVector2::Reader {
+public:
+  typedef CapVector2 Reads;
+
+  Reader() = default;
+  inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
+
+  inline ::capnp::MessageSize totalSize() const {
+    return _reader.totalSize().asPublic();
+  }
+
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const {
+    return ::capnp::_::structString(_reader, *_capnpPrivate::brand());
+  }
+#endif  // !CAPNP_LITE
+
+  inline float getX() const;
+
+  inline float getY() const;
+
+private:
+  ::capnp::_::StructReader _reader;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::List;
+  friend class ::capnp::MessageBuilder;
+  friend class ::capnp::Orphanage;
+};
+
+class CapVector2::Builder {
+public:
+  typedef CapVector2 Builds;
+
+  Builder() = delete;  // Deleted to discourage incorrect usage.
+                       // You can explicitly initialize to nullptr instead.
+  inline Builder(decltype(nullptr)) {}
+  inline explicit Builder(::capnp::_::StructBuilder base): _builder(base) {}
+  inline operator Reader() const { return Reader(_builder.asReader()); }
+  inline Reader asReader() const { return *this; }
+
+  inline ::capnp::MessageSize totalSize() const { return asReader().totalSize(); }
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const { return asReader().toString(); }
+#endif  // !CAPNP_LITE
+
+  inline float getX();
+  inline void setX(float value);
+
+  inline float getY();
+  inline void setY(float value);
+
+private:
+  ::capnp::_::StructBuilder _builder;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  friend class ::capnp::Orphanage;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+};
+
+#if !CAPNP_LITE
+class CapVector2::Pipeline {
+public:
+  typedef CapVector2 Pipelines;
+
+  inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
+  inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
+      : _typeless(kj::mv(typeless)) {}
+
+private:
+  ::capnp::AnyPointer::Pipeline _typeless;
+  friend class ::capnp::PipelineHook;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+};
+#endif  // !CAPNP_LITE
+
+class CapVertex::Reader {
+public:
+  typedef CapVertex Reads;
+
+  Reader() = default;
+  inline explicit Reader(::capnp::_::StructReader base): _reader(base) {}
+
+  inline ::capnp::MessageSize totalSize() const {
+    return _reader.totalSize().asPublic();
+  }
+
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const {
+    return ::capnp::_::structString(_reader, *_capnpPrivate::brand());
+  }
+#endif  // !CAPNP_LITE
+
+  inline bool hasPosition() const;
+  inline  ::CapVector3::Reader getPosition() const;
+
+  inline bool hasNormal() const;
+  inline  ::CapVector3::Reader getNormal() const;
+
+  inline bool hasTexCoord() const;
+  inline  ::CapVector2::Reader getTexCoord() const;
+
+private:
+  ::capnp::_::StructReader _reader;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::List;
+  friend class ::capnp::MessageBuilder;
+  friend class ::capnp::Orphanage;
+};
+
+class CapVertex::Builder {
+public:
+  typedef CapVertex Builds;
+
+  Builder() = delete;  // Deleted to discourage incorrect usage.
+                       // You can explicitly initialize to nullptr instead.
+  inline Builder(decltype(nullptr)) {}
+  inline explicit Builder(::capnp::_::StructBuilder base): _builder(base) {}
+  inline operator Reader() const { return Reader(_builder.asReader()); }
+  inline Reader asReader() const { return *this; }
+
+  inline ::capnp::MessageSize totalSize() const { return asReader().totalSize(); }
+#if !CAPNP_LITE
+  inline ::kj::StringTree toString() const { return asReader().toString(); }
+#endif  // !CAPNP_LITE
+
+  inline bool hasPosition();
+  inline  ::CapVector3::Builder getPosition();
+  inline void setPosition( ::CapVector3::Reader value);
+  inline  ::CapVector3::Builder initPosition();
+  inline void adoptPosition(::capnp::Orphan< ::CapVector3>&& value);
+  inline ::capnp::Orphan< ::CapVector3> disownPosition();
+
+  inline bool hasNormal();
+  inline  ::CapVector3::Builder getNormal();
+  inline void setNormal( ::CapVector3::Reader value);
+  inline  ::CapVector3::Builder initNormal();
+  inline void adoptNormal(::capnp::Orphan< ::CapVector3>&& value);
+  inline ::capnp::Orphan< ::CapVector3> disownNormal();
+
+  inline bool hasTexCoord();
+  inline  ::CapVector2::Builder getTexCoord();
+  inline void setTexCoord( ::CapVector2::Reader value);
+  inline  ::CapVector2::Builder initTexCoord();
+  inline void adoptTexCoord(::capnp::Orphan< ::CapVector2>&& value);
+  inline ::capnp::Orphan< ::CapVector2> disownTexCoord();
+
+private:
+  ::capnp::_::StructBuilder _builder;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+  friend class ::capnp::Orphanage;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::_::PointerHelpers;
+};
+
+#if !CAPNP_LITE
+class CapVertex::Pipeline {
+public:
+  typedef CapVertex Pipelines;
+
+  inline Pipeline(decltype(nullptr)): _typeless(nullptr) {}
+  inline explicit Pipeline(::capnp::AnyPointer::Pipeline&& typeless)
+      : _typeless(kj::mv(typeless)) {}
+
+  inline  ::CapVector3::Pipeline getPosition();
+  inline  ::CapVector3::Pipeline getNormal();
+  inline  ::CapVector2::Pipeline getTexCoord();
+private:
+  ::capnp::AnyPointer::Pipeline _typeless;
+  friend class ::capnp::PipelineHook;
+  template <typename, ::capnp::Kind>
+  friend struct ::capnp::ToDynamic_;
+};
+#endif  // !CAPNP_LITE
+
 class CapModel::Reader {
 public:
   typedef CapModel Reads;
@@ -156,8 +373,8 @@ public:
   }
 #endif  // !CAPNP_LITE
 
-  inline bool hasVertexPositions() const;
-  inline  ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>::Reader getVertexPositions() const;
+  inline bool hasVertices() const;
+  inline  ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>::Reader getVertices() const;
 
   inline bool hasIndices() const;
   inline  ::capnp::List< ::uint32_t,  ::capnp::Kind::PRIMITIVE>::Reader getIndices() const;
@@ -190,12 +407,12 @@ public:
   inline ::kj::StringTree toString() const { return asReader().toString(); }
 #endif  // !CAPNP_LITE
 
-  inline bool hasVertexPositions();
-  inline  ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>::Builder getVertexPositions();
-  inline void setVertexPositions( ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>::Reader value);
-  inline  ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>::Builder initVertexPositions(unsigned int size);
-  inline void adoptVertexPositions(::capnp::Orphan< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>>&& value);
-  inline ::capnp::Orphan< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>> disownVertexPositions();
+  inline bool hasVertices();
+  inline  ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>::Builder getVertices();
+  inline void setVertices( ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>::Reader value);
+  inline  ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>::Builder initVertices(unsigned int size);
+  inline void adoptVertices(::capnp::Orphan< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>>&& value);
+  inline ::capnp::Orphan< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>> disownVertices();
 
   inline bool hasIndices();
   inline  ::capnp::List< ::uint32_t,  ::capnp::Kind::PRIMITIVE>::Builder getIndices();
@@ -275,37 +492,182 @@ inline void CapVector3::Builder::setZ(float value) {
       ::capnp::bounded<2>() * ::capnp::ELEMENTS, value);
 }
 
-inline bool CapModel::Reader::hasVertexPositions() const {
+inline float CapVector2::Reader::getX() const {
+  return _reader.getDataField<float>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+
+inline float CapVector2::Builder::getX() {
+  return _builder.getDataField<float>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS);
+}
+inline void CapVector2::Builder::setX(float value) {
+  _builder.setDataField<float>(
+      ::capnp::bounded<0>() * ::capnp::ELEMENTS, value);
+}
+
+inline float CapVector2::Reader::getY() const {
+  return _reader.getDataField<float>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS);
+}
+
+inline float CapVector2::Builder::getY() {
+  return _builder.getDataField<float>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS);
+}
+inline void CapVector2::Builder::setY(float value) {
+  _builder.setDataField<float>(
+      ::capnp::bounded<1>() * ::capnp::ELEMENTS, value);
+}
+
+inline bool CapVertex::Reader::hasPosition() const {
   return !_reader.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
 }
-inline bool CapModel::Builder::hasVertexPositions() {
+inline bool CapVertex::Builder::hasPosition() {
   return !_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
 }
-inline  ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>::Reader CapModel::Reader::getVertexPositions() const {
-  return ::capnp::_::PointerHelpers< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>>::get(_reader.getPointerField(
+inline  ::CapVector3::Reader CapVertex::Reader::getPosition() const {
+  return ::capnp::_::PointerHelpers< ::CapVector3>::get(_reader.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
-inline  ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>::Builder CapModel::Builder::getVertexPositions() {
-  return ::capnp::_::PointerHelpers< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>>::get(_builder.getPointerField(
+inline  ::CapVector3::Builder CapVertex::Builder::getPosition() {
+  return ::capnp::_::PointerHelpers< ::CapVector3>::get(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
-inline void CapModel::Builder::setVertexPositions( ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>::Reader value) {
-  ::capnp::_::PointerHelpers< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>>::set(_builder.getPointerField(
+#if !CAPNP_LITE
+inline  ::CapVector3::Pipeline CapVertex::Pipeline::getPosition() {
+  return  ::CapVector3::Pipeline(_typeless.getPointerField(0));
+}
+#endif  // !CAPNP_LITE
+inline void CapVertex::Builder::setPosition( ::CapVector3::Reader value) {
+  ::capnp::_::PointerHelpers< ::CapVector3>::set(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS), value);
 }
-inline  ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>::Builder CapModel::Builder::initVertexPositions(unsigned int size) {
-  return ::capnp::_::PointerHelpers< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>>::init(_builder.getPointerField(
-      ::capnp::bounded<0>() * ::capnp::POINTERS), size);
+inline  ::CapVector3::Builder CapVertex::Builder::initPosition() {
+  return ::capnp::_::PointerHelpers< ::CapVector3>::init(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
-inline void CapModel::Builder::adoptVertexPositions(
-    ::capnp::Orphan< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>>&& value) {
-  ::capnp::_::PointerHelpers< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>>::adopt(_builder.getPointerField(
+inline void CapVertex::Builder::adoptPosition(
+    ::capnp::Orphan< ::CapVector3>&& value) {
+  ::capnp::_::PointerHelpers< ::CapVector3>::adopt(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS), kj::mv(value));
 }
-inline ::capnp::Orphan< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>> CapModel::Builder::disownVertexPositions() {
-  return ::capnp::_::PointerHelpers< ::capnp::List< ::CapVector3,  ::capnp::Kind::STRUCT>>::disown(_builder.getPointerField(
+inline ::capnp::Orphan< ::CapVector3> CapVertex::Builder::disownPosition() {
+  return ::capnp::_::PointerHelpers< ::CapVector3>::disown(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+
+inline bool CapVertex::Reader::hasNormal() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS).isNull();
+}
+inline bool CapVertex::Builder::hasNormal() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS).isNull();
+}
+inline  ::CapVector3::Reader CapVertex::Reader::getNormal() const {
+  return ::capnp::_::PointerHelpers< ::CapVector3>::get(_reader.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+inline  ::CapVector3::Builder CapVertex::Builder::getNormal() {
+  return ::capnp::_::PointerHelpers< ::CapVector3>::get(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+#if !CAPNP_LITE
+inline  ::CapVector3::Pipeline CapVertex::Pipeline::getNormal() {
+  return  ::CapVector3::Pipeline(_typeless.getPointerField(1));
+}
+#endif  // !CAPNP_LITE
+inline void CapVertex::Builder::setNormal( ::CapVector3::Reader value) {
+  ::capnp::_::PointerHelpers< ::CapVector3>::set(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), value);
+}
+inline  ::CapVector3::Builder CapVertex::Builder::initNormal() {
+  return ::capnp::_::PointerHelpers< ::CapVector3>::init(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+inline void CapVertex::Builder::adoptNormal(
+    ::capnp::Orphan< ::CapVector3>&& value) {
+  ::capnp::_::PointerHelpers< ::CapVector3>::adopt(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::CapVector3> CapVertex::Builder::disownNormal() {
+  return ::capnp::_::PointerHelpers< ::CapVector3>::disown(_builder.getPointerField(
+      ::capnp::bounded<1>() * ::capnp::POINTERS));
+}
+
+inline bool CapVertex::Reader::hasTexCoord() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS).isNull();
+}
+inline bool CapVertex::Builder::hasTexCoord() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS).isNull();
+}
+inline  ::CapVector2::Reader CapVertex::Reader::getTexCoord() const {
+  return ::capnp::_::PointerHelpers< ::CapVector2>::get(_reader.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline  ::CapVector2::Builder CapVertex::Builder::getTexCoord() {
+  return ::capnp::_::PointerHelpers< ::CapVector2>::get(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+#if !CAPNP_LITE
+inline  ::CapVector2::Pipeline CapVertex::Pipeline::getTexCoord() {
+  return  ::CapVector2::Pipeline(_typeless.getPointerField(2));
+}
+#endif  // !CAPNP_LITE
+inline void CapVertex::Builder::setTexCoord( ::CapVector2::Reader value) {
+  ::capnp::_::PointerHelpers< ::CapVector2>::set(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS), value);
+}
+inline  ::CapVector2::Builder CapVertex::Builder::initTexCoord() {
+  return ::capnp::_::PointerHelpers< ::CapVector2>::init(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+inline void CapVertex::Builder::adoptTexCoord(
+    ::capnp::Orphan< ::CapVector2>&& value) {
+  ::capnp::_::PointerHelpers< ::CapVector2>::adopt(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::CapVector2> CapVertex::Builder::disownTexCoord() {
+  return ::capnp::_::PointerHelpers< ::CapVector2>::disown(_builder.getPointerField(
+      ::capnp::bounded<2>() * ::capnp::POINTERS));
+}
+
+inline bool CapModel::Reader::hasVertices() const {
+  return !_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline bool CapModel::Builder::hasVertices() {
+  return !_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS).isNull();
+}
+inline  ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>::Reader CapModel::Reader::getVertices() const {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>>::get(_reader.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline  ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>::Builder CapModel::Builder::getVertices() {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>>::get(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS));
+}
+inline void CapModel::Builder::setVertices( ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>::Reader value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>>::set(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), value);
+}
+inline  ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>::Builder CapModel::Builder::initVertices(unsigned int size) {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>>::init(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), size);
+}
+inline void CapModel::Builder::adoptVertices(
+    ::capnp::Orphan< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>>&& value) {
+  ::capnp::_::PointerHelpers< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>>::adopt(_builder.getPointerField(
+      ::capnp::bounded<0>() * ::capnp::POINTERS), kj::mv(value));
+}
+inline ::capnp::Orphan< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>> CapModel::Builder::disownVertices() {
+  return ::capnp::_::PointerHelpers< ::capnp::List< ::CapVertex,  ::capnp::Kind::STRUCT>>::disown(_builder.getPointerField(
       ::capnp::bounded<0>() * ::capnp::POINTERS));
 }
 
