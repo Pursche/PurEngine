@@ -788,4 +788,50 @@ struct hashable : std::hash<type_safe::underlying_type<StrongTypedef>>
 };
 } // namespace type_safe
 
+#define STRONG_TYPEDEF(typeName, type) _STRONG_TYPEDEF(typeName, type, Comparison)
+
+#define _STRONG_TYPEDEF(typeName, _type, comparisonSuffix) \
+template<class StrongTypedef> \
+struct typeName##comparisonSuffix \
+{ \
+    friend bool operator==(StrongTypedef& lhs, const StrongTypedef& rhs) \
+    { \
+        using type = type_safe::underlying_type<StrongTypedef>; \
+        return static_cast<type&>(lhs) == static_cast<const type&>(rhs); \
+    } \
+    friend bool operator==(const StrongTypedef& lhs, const StrongTypedef& rhs) \
+    { \
+        using type = type_safe::underlying_type<StrongTypedef>; \
+        return static_cast<const type&>(lhs) == static_cast<const type&>(rhs); \
+    } \
+    friend bool operator!=(StrongTypedef& lhs, const StrongTypedef& rhs) \
+    { \
+        using type = type_safe::underlying_type<StrongTypedef>; \
+        return static_cast<type&>(lhs) != static_cast<const type&>(rhs); \
+    } \
+    friend bool operator!=(const StrongTypedef& lhs, const StrongTypedef& rhs) \
+    { \
+        using type = type_safe::underlying_type<StrongTypedef>; \
+        return static_cast<const type&>(lhs) != static_cast<const type&>(rhs); \
+    } \
+}; \
+\
+struct typeName : type_safe::strong_typedef<typeName, _type>, typeName##comparisonSuffix<typeName> \
+{ \
+    using strong_typedef::strong_typedef; \
+    using type = type_safe::underlying_type<typeName>; \
+    static size_t MaxValue() \
+    { \
+        return std::numeric_limits<type>::max(); \
+    } \
+    static type MaxValueTyped() \
+    { \
+        return (type)std::numeric_limits<type>::max(); \
+    } \
+    static typeName Invalid() \
+    { \
+        return typeName(typeName(typeName::MaxValueTyped())); \
+    } \
+}; 
+
 #endif // TYPE_SAFE_STRONG_TYPEDEF_HPP_INCLUDED

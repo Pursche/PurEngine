@@ -1,63 +1,68 @@
 #include "Renderer.h"
-#include "Model.h"
-#include "DX12/RenderDeviceDX12.h"
 
-Renderer::Renderer()
-    : _device(nullptr)
+namespace Renderer
 {
-
-}
-
-Renderer::~Renderer()
-{
-
-}
-
-bool Renderer::Init(Window* window, int width, int height)
-{
-    _device = new RenderDeviceDX12();
-
-    bool result = _device->Init(window, width, height);
-    if (!result)
+    RenderGraph Renderer::CreateRenderGraph(RenderGraphDesc& desc)
     {
-        return false;
+        RenderGraph renderGraph;
+        renderGraph.Init(desc);
+
+        return renderGraph;
     }
 
-    _model = new Model();
-    _model->LoadFromFile("Data/models/Cube.purmodel");
-    //_model->MakeQuad();
-    return true;
-}
-
-void Renderer::Update(f32 deltaTime)
-{
-    Model::ConstantBuffer& constantBuffer = _model->GetConstants();
-    constantBuffer.colorMultiplier += Vector4(1.0f, 1.0f, 1.0f, 0)* deltaTime;
-    if (constantBuffer.colorMultiplier.x > 1.0f)
+    ImageID Renderer::CreateImage(ImageDesc& /*desc*/)
     {
-        constantBuffer.colorMultiplier = Vector4(0.0f, 0.0f, 0.0f, 1.0f);
+        return ImageID::Invalid();
     }
-    constantBuffer.modelMatrix = _model->GetMatrix().Transposed();
-}
 
-void Renderer::Render()
-{
-    _device->RegisterModel(_model);
-    _device->Render();
-}
+    ImageID Renderer::CreatePermanentImage(ImageDesc& /*desc*/)
+    {
+        return ImageID::Invalid();
+    }
 
-void Renderer::WaitForFrame()
-{
-    _device->WaitForFrame();
-}
+    DepthImageID Renderer::CreateDepthImage(DepthImageDesc& /*desc*/)
+    {
+        return DepthImageID::Invalid();
+    }
 
-void Renderer::Cleanup()
-{
-    _device->Cleanup();
-}
+    DepthImageID Renderer::CreatePermanentDepthImage(DepthImageDesc& /*desc*/)
+    {
+        return DepthImageID::Invalid();
+    }
 
-void Renderer::SetViewMatrix(const Matrix& viewMatrix)
-{
-    ViewConstantBuffer& cb = _device->GetViewConstantBuffer();
-    cb.view = viewMatrix.Transposed();
+    GraphicsPipelineID Renderer::CreatePipeline(GraphicsPipelineDesc& /*desc*/)
+    {
+        return GraphicsPipelineID::Invalid();
+    }
+
+    ComputePipelineID Renderer::CreatePipeline(ComputePipelineDesc& /*desc*/)
+    {
+        return ComputePipelineID::Invalid();
+    }
+
+    RenderLayer Renderer::GetRenderLayer(u32 /*layerHash*/)
+    {
+        return RenderLayer(); // TODO: Store these in Renderer, assign them names (compiletime hashed) and reuse them
+    }
+
+    ModelID Renderer::LoadModel(ModelDesc& /*desc*/)
+    {
+        return ModelID::Invalid();
+    }
+
+    VertexShaderID Renderer::LoadShader(VertexShaderDesc& /*desc*/)
+    {
+        return VertexShaderID::Invalid();
+    }
+
+    PixelShaderID Renderer::LoadShader(PixelShaderDesc& /*desc*/)
+    {
+        return PixelShaderID::Invalid();
+    }
+
+    ComputeShaderID Renderer::LoadShader(ComputeShaderDesc& /*desc*/)
+    {
+        return ComputeShaderID::Invalid();
+    }
+
 }

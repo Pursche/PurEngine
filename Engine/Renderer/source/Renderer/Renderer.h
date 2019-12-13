@@ -1,28 +1,41 @@
 #pragma once
 #include <Core.h>
+#include <Utils/StringUtils.h>
+#include "RenderGraph.h"
+#include "RenderLayer.h"
+#include "RenderPass.h"
 
-class Window;
-class RenderDevice;
-class RenderContext;
-class Model;
+// Descriptors
+#include "Descriptors/ImageDesc.h"
+#include "Descriptors/DepthImageDesc.h"
+#include "Descriptors/ModelDesc.h"
 
-class Renderer
+namespace Renderer
 {
-public:
-    Renderer();
-    ~Renderer();
+    class Renderer
+    {
+    public:
+        RenderGraph CreateRenderGraph(RenderGraphDesc& desc);
 
-    bool Init(Window* window, int width, int height);
-    void Update(f32 deltaTime);
-    void Render();
-    void WaitForFrame();
-    void Cleanup();
+        ImageID CreateImage(ImageDesc& desc);
+        ImageID CreatePermanentImage(ImageDesc& desc);
 
-    void SetViewMatrix(const Matrix& viewMatrix);
+        DepthImageID CreateDepthImage(DepthImageDesc& desc);
+        DepthImageID CreatePermanentDepthImage(DepthImageDesc& desc);
 
-private:
+        GraphicsPipelineID CreatePipeline(GraphicsPipelineDesc& desc);
+        ComputePipelineID CreatePipeline(ComputePipelineDesc& desc);
 
-private:
-    RenderDevice* _device;
-    Model* _model;
-};
+        RenderLayer GetRenderLayer(u32 layerHash);
+
+        ModelID LoadModel(ModelDesc& desc);
+
+        VertexShaderID LoadShader(VertexShaderDesc& desc);
+        PixelShaderID LoadShader(PixelShaderDesc& desc);
+        ComputeShaderID LoadShader(ComputeShaderDesc& desc);
+
+    private:
+
+    private:
+    };
+}

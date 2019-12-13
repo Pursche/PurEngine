@@ -1,5 +1,5 @@
 #pragma once
-#include <Utils/StrongTypedef.hpp>
+#include <Utils/StrongTypedef.h>
 #include <limits>
 
 template <class StrongTypedef>
