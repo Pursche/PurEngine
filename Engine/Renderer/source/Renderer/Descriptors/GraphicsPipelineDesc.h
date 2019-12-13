@@ -5,14 +5,25 @@
 
 #include "VertexShaderDesc.h"
 #include "PixelShaderDesc.h"
+#include "ImageDesc.h"
+#include "DepthImageDesc.h"
+#include "RenderTargetDesc.h"
 
 namespace Renderer
 {
     struct GraphicsPipelineDesc
     {
-        CullState cullState = CULL_STATE_FRONT;
-        FrontFaceState frontFaceState = FRONT_STATE_CLOCKWISE;
-        SampleCount sampleCount = SAMPLE_COUNT_1;
+        static const int MAX_RENDER_TARGETS = 8;
+
+        // States
+        RasterizerState rasterizerState;
+        DepthStencilState depthStencilState;
+
+        // Rendertargets
+        RenderTargetDesc renderTargets[MAX_RENDER_TARGETS];
+        DepthImageID depthStencil = DepthImageID::Invalid();
+
+        // Shaders
         VertexShaderID vertexShader = VertexShaderID::Invalid();
         PixelShaderID pixelShader = PixelShaderID::Invalid();
     };

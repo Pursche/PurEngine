@@ -89,11 +89,12 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
             pixelShaderDesc.path = "shaders/prepass.ps.hlsl";
 
             Renderer::GraphicsPipelineDesc pipelineDesc;
-            pipelineDesc.cullState = Renderer::CULL_STATE_FRONT;
-            pipelineDesc.frontFaceState = Renderer::FRONT_STATE_CLOCKWISE;
-            pipelineDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
+            // pipelineDesc.rasterizerState and pipelineDesc.blendState is available as well, but they have sane defaults so I won't mess with them here
+            pipelineDesc.depthStencilState.depthWriteEnable = true; // Enable writing depth stencil
             pipelineDesc.vertexShader = renderer.LoadShader(vertexShaderDesc);
             pipelineDesc.pixelShader = renderer.LoadShader(pixelShaderDesc);
+
+            pipelineDesc.depthStencil = mainDepth;
 
             Renderer::GraphicsPipelineID pipeline = renderer.CreatePipeline(pipelineDesc);
 
@@ -113,11 +114,15 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
             pixelShaderDesc.path = "shaders/main.ps.hlsl";
 
             Renderer::GraphicsPipelineDesc pipelineDesc;
-            pipelineDesc.cullState = Renderer::CULL_STATE_FRONT;
-            pipelineDesc.frontFaceState = Renderer::FRONT_STATE_CLOCKWISE;
-            pipelineDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
+            // pipelineDesc.rasterizerState and pipelineDesc.blendState is available as well
+            pipelineDesc.depthStencilState.depthWriteEnable = false;
+            pipelineDesc.depthStencilState.depthFunc = Renderer::COMPARISON_FUNC_EQUAL; // Only pass depth test if depth is equal
             pipelineDesc.vertexShader = renderer.LoadShader(vertexShaderDesc);
             pipelineDesc.pixelShader = renderer.LoadShader(pixelShaderDesc);
+
+            pipelineDesc.depthStencil = mainDepth;
+            pipelineDesc.renderTargets[0].image = mainColor;
+            // pipelineDesc.renderTargets[0].blendState is available as well
 
             Renderer::GraphicsPipelineID pipeline = renderer.CreatePipeline(pipelineDesc);
 
