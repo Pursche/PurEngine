@@ -31,18 +31,35 @@ namespace Renderer
             {
                 ImageDesc desc;
                 ID3D12Resource* resource;
+
                 ID3D12DescriptorHeap* rtvDescriptorHeap;
                 ID3D12DescriptorHeap* srvUavDescriptorHeap;
+
+                D3D12_CPU_DESCRIPTOR_HANDLE rtv;
+                D3D12_CPU_DESCRIPTOR_HANDLE srv;
+                D3D12_CPU_DESCRIPTOR_HANDLE uav;
             };
 
             struct DepthImage
             {
                 DepthImageDesc desc;
+                ID3D12Resource* resource;
+
+                ID3D12DescriptorHeap* dsvDescriptorHeap;
+                ID3D12DescriptorHeap* srvDescriptorHeap;
+
+                D3D12_CPU_DESCRIPTOR_HANDLE dsv;
+                D3D12_CPU_DESCRIPTOR_HANDLE srv;
             };
 
         private:
-            ::DXGI_FORMAT ImageFormatToDXGIFormat(ImageFormat format);
-            ::DXGI_FORMAT DepthImageFormatToDXGIFormat(DepthImageFormat format);
+            ::DXGI_FORMAT GetDXGIFormat(ImageFormat format);
+
+            ::DXGI_FORMAT GetBaseFormat(DepthImageFormat format);
+            ::DXGI_FORMAT GetDXGIFormat(DepthImageFormat format);
+            ::DXGI_FORMAT GetDSVFormat(DepthImageFormat format);
+            ::DXGI_FORMAT GetDepthFormat(DepthImageFormat format);
+            u32 GetNumElements(DepthImageFormat format);
             
         private:
             std::vector<Image> _images;

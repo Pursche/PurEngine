@@ -67,7 +67,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
         Renderer::DepthImageDesc mainDepthDesc;
         mainDepthDesc.dimensions = Vector2i(1280, 720);
-        mainDepthDesc.format = Renderer::DEPTH_IMAGE_FORMAT_R32_FLOAT;
+        mainDepthDesc.format = Renderer::DEPTH_IMAGE_FORMAT_D32_FLOAT;
         mainDepthDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
 
         Renderer::DepthImageID mainDepth = renderer->CreateDepthImage(mainDepthDesc);

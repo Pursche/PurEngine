@@ -106,6 +106,8 @@ namespace Renderer
                 result = _device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&_mainDescriptorHeap[i]));
                 assert(SUCCEEDED(result)); // Failed to create main descriptor heap
             }
+
+            _imageHandler = new ImageHandlerDX12();
         }
 
         void RenderDeviceDX12::InitOnce()

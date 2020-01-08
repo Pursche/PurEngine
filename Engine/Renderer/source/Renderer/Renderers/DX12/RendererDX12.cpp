@@ -15,14 +15,14 @@ namespace Renderer
         _device->InitWindow(window);
     }
 
-    ImageID RendererDX12::CreateImage(ImageDesc& /*desc*/)
+    ImageID RendererDX12::CreateImage(ImageDesc& desc)
     {
-        return ImageID::Invalid();
+        return _device->CreateImage(desc);
     }
 
-    DepthImageID RendererDX12::CreateDepthImage(DepthImageDesc& /*desc*/)
+    DepthImageID RendererDX12::CreateDepthImage(DepthImageDesc& desc)
     {
-        return DepthImageID::Invalid();
+        return _device->CreateDepthImage(desc);
     }
 
     GraphicsPipelineID RendererDX12::CreatePipeline(GraphicsPipelineDesc& /*desc*/)
