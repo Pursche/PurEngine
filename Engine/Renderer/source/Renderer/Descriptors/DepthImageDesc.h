@@ -24,9 +24,9 @@ namespace Renderer
 
     struct DepthImageDesc
     {
-        Vector2i dimensions;
+        Vector2i dimensions = Vector2i(0,0);
         DepthImageFormat format = DEPTH_IMAGE_FORMAT_UNKNOWN;
-        SampleCount sampleCount;
+        SampleCount sampleCount = SAMPLE_COUNT_1;
     };
 
     // Lets strong-typedef an ID type with the underlying type of u16

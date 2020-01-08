@@ -1,5 +1,6 @@
 #pragma once
 #include <Core.h>
+#include <cassert>
 
 namespace Renderer
 {
@@ -23,6 +24,20 @@ namespace Renderer
         SAMPLE_COUNT_4,
         SAMPLE_COUNT_8
     };
+
+    constexpr int SampleCountToInt(SampleCount sampleCount)
+    {
+        switch (sampleCount)
+        {
+            case SAMPLE_COUNT_1: return 1;
+            case SAMPLE_COUNT_2: return 2;
+            case SAMPLE_COUNT_4: return 4;
+            case SAMPLE_COUNT_8: return 8;
+            default:
+                assert(false); // Invalid sample count, did we just add to the enum?
+        }
+        return 0;
+    }
 
     enum FrontFaceState
     {

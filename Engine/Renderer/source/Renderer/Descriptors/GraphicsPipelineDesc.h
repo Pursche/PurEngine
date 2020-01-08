@@ -2,6 +2,7 @@
 #include <Core.h>
 #include <Utils/StrongTypedef.h>
 #include "../RenderStates.h"
+#include "../RenderPassResources.h"
 
 #include "VertexShaderDesc.h"
 #include "PixelShaderDesc.h"
@@ -18,10 +19,11 @@ namespace Renderer
         // States
         RasterizerState rasterizerState;
         DepthStencilState depthStencilState;
+        BlendState blendStates[MAX_RENDER_TARGETS];
 
         // Rendertargets
-        RenderTargetDesc renderTargets[MAX_RENDER_TARGETS];
-        DepthImageID depthStencil = DepthImageID::Invalid();
+        RenderPassMutableResource renderTargets[MAX_RENDER_TARGETS]{ RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid() };
+        RenderPassMutableResource depthStencil = RenderPassMutableResource::Invalid();
 
         // Shaders
         VertexShaderID vertexShader = VertexShaderID::Invalid();
