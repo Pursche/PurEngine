@@ -6,6 +6,9 @@ namespace Renderer
     namespace Backend
     {
         class RenderDeviceDX12;
+        class ImageHandlerDX12;
+        class ShaderHandlerDX12;
+        class ModelHandlerDX12;
     }
     
     class RendererDX12 : public Renderer
@@ -33,6 +36,9 @@ namespace Renderer
         Backend::ConstantBufferBackend* CreateConstantBufferBackend(size_t size) override;
 
     private:
-        Backend::RenderDeviceDX12* _device;
+        Backend::RenderDeviceDX12* _device = nullptr;
+        Backend::ImageHandlerDX12* _imageHandler = nullptr;
+        Backend::ShaderHandlerDX12* _shaderHandler = nullptr;
+        Backend::ModelHandlerDX12* _modelHandler = nullptr;
     };
 }

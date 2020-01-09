@@ -14,12 +14,15 @@ namespace Renderer
 {
     struct GraphicsPipelineDesc
     {
-        static const int MAX_RENDER_TARGETS = 8;
+        static const int MAX_CONSTANT_BUFFERS = 8;
+        static const int MAX_INPUT_LAYOUTS = 8;
 
         // States
         RasterizerState rasterizerState;
         DepthStencilState depthStencilState;
-        BlendState blendStates[MAX_RENDER_TARGETS];
+        BlendState blendState;
+        ConstantBufferState constantBufferStates[MAX_CONSTANT_BUFFERS];
+        InputLayout inputLayouts[MAX_INPUT_LAYOUTS];
 
         // Rendertargets
         RenderPassMutableResource renderTargets[MAX_RENDER_TARGETS]{ RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid() };

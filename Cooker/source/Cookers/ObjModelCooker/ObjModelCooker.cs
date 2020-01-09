@@ -148,7 +148,7 @@ namespace Cooker.Cookers
                 model.Indices = indices;
 
                 // Create output file
-                string outputFileName = Path.ChangeExtension(Path.GetFileName(assetPath), ".PurModel");
+                string outputFileName = Path.ChangeExtension(Path.GetFileName(assetPath), ".model");
                 producedFile = Path.Combine(outputDirectory, "models", outputFileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(producedFile));
                 using (FileStream outStream = new FileStream(producedFile, FileMode.Create))

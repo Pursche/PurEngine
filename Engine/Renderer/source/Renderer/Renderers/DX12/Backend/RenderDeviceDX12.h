@@ -13,8 +13,6 @@ namespace Renderer
     namespace Backend
     {
         struct ConstantBufferBackend;
-        
-        class ImageHandlerDX12;
 
         class RenderDeviceDX12
         {
@@ -26,9 +24,6 @@ namespace Renderer
             void EndCommandList(ID3D12GraphicsCommandList* commandList);
 
             ConstantBufferBackend* CreateConstantBufferBackend(size_t size);
-
-            ImageID CreateImage(const ImageDesc& desc);
-            DepthImageID CreateDepthImage(const DepthImageDesc& desc);
 
         private:
             void InitOnce();
@@ -52,11 +47,10 @@ namespace Renderer
 
             ID3D12DescriptorHeap* _mainDescriptorHeap[FRAME_BUFFER_COUNT];
 
-            // Handles
-            ImageHandlerDX12* _imageHandler = nullptr;
-
-            // We friend class all handlers so they can access the private variables they'll need to initialize stuff
+            // We friend class handlers that need access to private variables they'll need to initialize stuff
             friend class ImageHandlerDX12;
+            friend class ModelHandlerDX12;
+            friend class PipelineHandlerDX12;
         };
     }
 }

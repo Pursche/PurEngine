@@ -33,7 +33,73 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
     Camera camera(Vector3(0,0,-5));
 
+    // Create permanent Resources
+    Renderer::ImageDesc mainColorDesc;
+    mainColorDesc.dimensions = Vector2i(1280, 720);
+    mainColorDesc.format = Renderer::IMAGE_FORMAT_R16G16B16A16_FLOAT;
+    mainColorDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
+
+    Renderer::ImageID mainColor = renderer->CreateImage(mainColorDesc);
+
+    Renderer::DepthImageDesc mainDepthDesc;
+    mainDepthDesc.dimensions = Vector2i(1280, 720);
+    mainDepthDesc.format = Renderer::DEPTH_IMAGE_FORMAT_D32_FLOAT;
+    mainDepthDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
+
+    Renderer::DepthImageID mainDepth = renderer->CreateDepthImage(mainDepthDesc);
+
+    Renderer::RenderLayer mainLayer = renderer->GetRenderLayer(MainRenderLayer);
+
+    Renderer::ModelDesc modelDesc;
+    modelDesc.path = "Data/models/cube.model";
+
+    Renderer::ModelID cubeModel = renderer->LoadModel(modelDesc);
+    Renderer::InstanceData cubeInstance;
+    cubeInstance.modelMatrix = Matrix(); // Move, rotate etc the model here
+
+    struct ViewConstantBuffer
+    {
+        Matrix viewMatrix; // 64 bytes
+        Matrix projMatrix; // 64 bytes
+
+        float padding[128];
+    };
+
+    Renderer::ConstantBuffer<ViewConstantBuffer> viewConstantBuffer = renderer->CreateConstantBuffer<ViewConstantBuffer>();
+
+    // Set viewConstantBuffer
+    {
+        Matrix& projMatrix = viewConstantBuffer.resource.projMatrix;
+
+        const f32 fov = (68.0f) / 2.0f;
+        const f32 nearClip = 0.1f;
+        const f32 farClip = 10.0f;
+        f32 aspectRatio = static_cast<f32>(width) / static_cast<f32>(height);
+
+        f32 tanFov = Math::Tan(Math::DegToRad(fov));
+        projMatrix.right.x = 1.0f / (tanFov * aspectRatio);
+        projMatrix.up.y = 1.0f / tanFov;
+        projMatrix.at.z = -(farClip + nearClip) / (nearClip - farClip);
+        projMatrix.pos.z = 2 * farClip * nearClip / (nearClip - farClip);
+        projMatrix.pad3 = 1.0f;
+        projMatrix.pad4 = 0.0f;
+        projMatrix.Transpose();
+
+        viewConstantBuffer.Apply(0);
+    }
+
+    struct ModelConstantBuffer
+    {
+        Vector4 colorMultiplier; // 16 bytes
+        Matrix modelMatrix; // 64 bytes
+
+        float padding[128];
+    };
+
+    Renderer::ConstantBuffer<ModelConstantBuffer> modelConstantBuffer = renderer->CreateConstantBuffer<ModelConstantBuffer>();
+
     Timer timer;
+    u32 frameIndex = 0;
     while (true)
     {
         f32 deltaTime = timer.GetDeltaTime();
@@ -53,64 +119,11 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         //oldRenderer.Update(deltaTime);
         //oldRenderer.Render();
 
-        // RenderGraph, this is just a mockup so far and needs almost all implementation
+        viewConstantBuffer.resource.viewMatrix = camera.GetViewMatrix().Inverted();
+        viewConstantBuffer.Apply(frameIndex);
+
         Renderer::RenderGraphDesc renderGraphDesc;
         Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc);
-
-        // Create Resources
-        Renderer::ImageDesc mainColorDesc;
-        mainColorDesc.dimensions = Vector2i(1280, 720);
-        mainColorDesc.format = Renderer::IMAGE_FORMAT_R16G16B16A16_FLOAT;
-        mainColorDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
-
-        Renderer::ImageID mainColor = renderer->CreateImage(mainColorDesc);
-
-        Renderer::DepthImageDesc mainDepthDesc;
-        mainDepthDesc.dimensions = Vector2i(1280, 720);
-        mainDepthDesc.format = Renderer::DEPTH_IMAGE_FORMAT_D32_FLOAT;
-        mainDepthDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
-
-        Renderer::DepthImageID mainDepth = renderer->CreateDepthImage(mainDepthDesc);
-
-        Renderer::RenderLayer mainLayer = renderer->GetRenderLayer(MainRenderLayer);
-
-        struct ViewConstantBuffer
-        {
-            Matrix view;
-            Matrix proj;
-
-            float padding[128];
-        };
-
-        Renderer::ConstantBuffer<ViewConstantBuffer> viewConstantBuffer = renderer->CreateConstantBuffer<ViewConstantBuffer>();
-
-        // Set ProjMatrix
-        {
-            Matrix& projMatrix = viewConstantBuffer.resource.proj;
-
-            const f32 fov = (68.0f) / 2.0f;
-            const f32 nearClip = 0.1f;
-            const f32 farClip = 10.0f;
-            f32 aspectRatio = static_cast<f32>(width) / static_cast<f32>(height);
-
-            f32 tanFov = Math::Tan(Math::DegToRad(fov));
-            projMatrix.right.x = 1.0f / (tanFov * aspectRatio);
-            projMatrix.up.y = 1.0f / tanFov;
-            projMatrix.at.z = -(farClip + nearClip) / (nearClip - farClip);
-            projMatrix.pos.z = 2 * farClip * nearClip / (nearClip - farClip);
-            projMatrix.pad3 = 1.0f;
-            projMatrix.pad4 = 0.0f;
-            projMatrix.Transpose();
-            
-            viewConstantBuffer.Apply(0);
-        }
-        
-        Renderer::ModelDesc modelDesc;
-        modelDesc.path = "models/cube.model";
-
-        Renderer::ModelID cubeModel = renderer->LoadModel(modelDesc);
-        Renderer::InstanceData cubeInstance;
-        cubeInstance.modelMatrix = Matrix(); // Move, rotate etc the model here
 
         mainLayer.RegisterModel(cubeModel, cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
         
@@ -122,24 +135,36 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
             };
 
             renderGraph.AddPass<DepthPrepassData>("Depth Prepass",
-            [mainDepth](DepthPrepassData& data, Renderer::RenderPassBuilder& builder) // Setup
+            [&](DepthPrepassData& data, Renderer::RenderPassBuilder& builder) // Setup
             { 
                 data.depth = builder.Write(mainDepth, Renderer::RenderPassBuilder::WriteMode::WRITE_MODE_RENDERTARGET, Renderer::RenderPassBuilder::LoadMode::LOAD_MODE_CLEAR);
 
                 return true; // Return true from setup to enable this pass, return false to disable it
             },
-            [&renderer](DepthPrepassData& data, Renderer::CommandList& commandList) // Execute
+            [&](DepthPrepassData& data, Renderer::CommandList& commandList) // Execute
             {
                 Renderer::GraphicsPipelineDesc pipelineDesc;
 
                 // Shaders
                 Renderer::VertexShaderDesc vertexShaderDesc;
-                vertexShaderDesc.path = "test1.vs.hlsl";
+                vertexShaderDesc.path = "Data/shaders/test.vs.hlsl.cso";
                 pipelineDesc.vertexShader = renderer->LoadShader(vertexShaderDesc); // This will load shader or use cached loaded shader
 
                 Renderer::PixelShaderDesc pixelShaderDesc;
-                pixelShaderDesc.path = "test1.ps.hlsl";
+                pixelShaderDesc.path = "Data/shaders/test.ps.hlsl.cso";
                 pipelineDesc.pixelShader = renderer->LoadShader(pixelShaderDesc); // This will load shader or use cached loaded shader
+
+                // Constant buffers  TODO: Improve on this, if I set state 0 and 3 it won't work etc...
+                pipelineDesc.constantBufferStates[0].enabled = true; // ViewCB
+                pipelineDesc.constantBufferStates[0].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
+                pipelineDesc.constantBufferStates[1].enabled = true; // ModelCB
+                pipelineDesc.constantBufferStates[1].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
+
+                // Input layouts TODO: Improve on this, if I set state 0 and 3 it won't work etc...
+                pipelineDesc.inputLayouts[0].enabled = true;
+                pipelineDesc.inputLayouts[0].SetName("POSITION");
+                pipelineDesc.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
+                pipelineDesc.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
 
                 // Depth state
                 pipelineDesc.depthStencilState.depthWriteEnable = true;
@@ -161,6 +186,11 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                     for (auto const& instance : instances)
                     {
+                        modelConstantBuffer.resource.modelMatrix = instance.modelMatrix;
+                        modelConstantBuffer.resource.colorMultiplier = instance.colorMultiplier;
+
+                        modelConstantBuffer.Apply(frameIndex);
+
                         commandList.Draw(id, instance);
                     }
                 }
@@ -208,6 +238,8 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
         renderGraph.Setup();
         renderGraph.Execute();
+
+        frameIndex = !frameIndex; // Flip between 0 and 1
     }
 
     return 0;

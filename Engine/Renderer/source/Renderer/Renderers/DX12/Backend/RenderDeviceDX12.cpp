@@ -106,8 +106,6 @@ namespace Renderer
                 result = _device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&_mainDescriptorHeap[i]));
                 assert(SUCCEEDED(result)); // Failed to create main descriptor heap
             }
-
-            _imageHandler = new ImageHandlerDX12();
         }
 
         void RenderDeviceDX12::InitOnce()
@@ -215,6 +213,11 @@ namespace Renderer
             commandList->Close();
             ID3D12CommandList* ppCommandLists[] = { commandList };
             _commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+
+            // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
+            _fenceValues[_frameIndex]++;
+            HRESULT result = _commandQueue->Signal(_fences[_frameIndex], _fenceValues[_frameIndex]);
+            assert(SUCCEEDED(result)); // Failed to signal fence
         }
 
         Backend::ConstantBufferBackend* RenderDeviceDX12::CreateConstantBufferBackend(size_t size)
@@ -245,16 +248,6 @@ namespace Renderer
             }
 
             return cbBackend;
-        }
-
-        ImageID RenderDeviceDX12::CreateImage(const ImageDesc& desc)
-        {
-            return _imageHandler->CreateImage(this, desc);
-        }
-
-        DepthImageID RenderDeviceDX12::CreateDepthImage(const DepthImageDesc& desc)
-        {
-            return _imageHandler->CreateDepthImage(this, desc);
         }
     }
 }
