@@ -1,6 +1,9 @@
 #include "PipelineHandlerDX12.h"
+#include "../../../RenderGraph.h"
+#include "../../../RenderGraphBuilder.h"
 #include "RenderDeviceDX12.h"
 #include "ShaderHandlerDX12.h"
+#include "ImageHandlerDX12.h"
 #include "d3dx12.h"
 #include <Utils/StringUtils.h>
 #include <Utils/XXHash64.h>
@@ -20,8 +23,10 @@ namespace Renderer
 
         }
 
-        GraphicsPipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, const GraphicsPipelineDesc& desc)
+        GraphicsPipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc)
         {
+            assert(desc.renderGraph != nullptr); // You need to tell the GraphicsPipelineDesc which RenderGraph it will use to get resources
+
             HRESULT result;
             size_t nextID;
 
@@ -95,7 +100,7 @@ namespace Renderer
             std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayouts(numInputLayouts);
             for (u8 i = 0; i < numInputLayouts; i++)
             {
-                inputLayouts[i].SemanticName = desc.inputLayouts[i].GetName().c_str();
+                inputLayouts[i].SemanticName = desc.inputLayouts[i].GetName();
                 inputLayouts[i].SemanticIndex = desc.inputLayouts[i].index;
                 inputLayouts[i].Format = ToDXGIFormat(desc.inputLayouts[i].format);
                 inputLayouts[i].InputSlot = desc.inputLayouts[i].slot;
@@ -126,19 +131,28 @@ namespace Renderer
             // Render state
             // TODO(maybe): psoDesc.StreamOuptut
             psoDesc.BlendState = ToBlendDesc(desc.blendState);
-            // TODO(immediate): psoDesc.SampleMask;
+            psoDesc.SampleMask = 0xffffffff; // TODO(maybe): Not hardcode this?
             psoDesc.RasterizerState = ToRasterizerDesc(desc.rasterizerState);
-            psoDesc.DepthStencilState = desc.depthStencilState;
+            psoDesc.DepthStencilState = ToDepthStencilDesc(desc.depthStencilState);
             psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
             // TODO(maybe): psoDesc.IBStripCutValue
             psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-            
-            // TODO(immediate): psoDesc.NumRenderTargets;
+
             for (int i = 0; i < MAX_RENDER_TARGETS; i++)
             {
-                psoDesc.RTVFormats[i];
+                if (desc.renderTargets[i] == RenderPassMutableResource::Invalid())
+                    break;
+                
+                ImageID imageId = desc.renderGraph->GetBuilder()->GetImage(desc.renderTargets[i]);
+                psoDesc.RTVFormats[i] = imageHandler->GetDXGIFormat(imageId);
+                psoDesc.NumRenderTargets++;
             }
-            // TODO(immediate): psoDesc.DSVFormat;
+            
+            if (desc.depthStencil != RenderPassMutableResource::Invalid())
+            {
+                DepthImageID depthImageId = desc.renderGraph->GetBuilder()->GetDepthImage(desc.depthStencil);
+                psoDesc.DSVFormat = imageHandler->GetDXGIFormat(depthImageId);
+            }
             // TODO(immediate): psoDesc.SampleDesc;
             // TODO(maybe): psoDesc.NodeMask;
             // TODO(maybe): psoDesc.CachedPSO;
@@ -149,9 +163,9 @@ namespace Renderer
             return GraphicsPipelineID(static_cast<gIDType>(nextID));
         }
 
-        ComputePipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* /*device*/, ShaderHandlerDX12* shaderHandler, const ComputePipelineDesc& desc)
+        ComputePipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* /*device*/, ShaderHandlerDX12* /*shaderHandler*/, ImageHandlerDX12* /*imageHandler*/, const ComputePipelineDesc& desc)
         {
-            HRESULT result;
+            //HRESULT result;
             size_t nextID;
 
             u64 descHash = XXHash64::hash(&desc, sizeof(desc), 0);
@@ -501,14 +515,78 @@ namespace Renderer
         {
             switch (cullMode)
             {
-                case CULL_MODE_NONE: return D3D12_CULL_MODE_NONE;
-                case CULL_MODE_FRONT: return D3D12_CULL_MODE_FRONT;
-                case CULL_MODE_BACK: return D3D12_CULL_MODE_BACK;
+                case CULL_MODE_NONE:    return D3D12_CULL_MODE_NONE;
+                case CULL_MODE_FRONT:   return D3D12_CULL_MODE_FRONT;
+                case CULL_MODE_BACK:    return D3D12_CULL_MODE_BACK;
                 default:
                     assert(false); // Invalid cull mode, did we add something to the enum?
             }
 
             return D3D12_CULL_MODE_NONE;
+        }
+
+        D3D12_DEPTH_STENCIL_DESC PipelineHandlerDX12::ToDepthStencilDesc(const DepthStencilState& state)
+        {
+            D3D12_DEPTH_STENCIL_DESC desc;
+            desc.DepthEnable = state.depthEnable;
+            desc.DepthWriteMask = state.depthWriteEnable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+            desc.DepthFunc = ToComparisonFunc(state.depthFunc);
+            desc.StencilEnable = state.stencilEnable;
+            desc.StencilReadMask = state.stencilReadMask;
+            desc.StencilWriteMask = state.stencilWriteMask;
+            desc.FrontFace = ToDepthStencilOpDesc(state.frontFace);
+            desc.BackFace = ToDepthStencilOpDesc(state.backFace);
+
+            return desc;
+        }
+
+        D3D12_COMPARISON_FUNC PipelineHandlerDX12::ToComparisonFunc(const ComparisonFunc& comparisonFunc)
+        {
+            switch (comparisonFunc)
+            {
+                case COMPARISON_FUNC_NEVER:         return D3D12_COMPARISON_FUNC_NEVER;
+                case COMPARISON_FUNC_LESS:          return D3D12_COMPARISON_FUNC_LESS;
+                case COMPARISON_FUNC_EQUAL:         return D3D12_COMPARISON_FUNC_EQUAL;
+                case COMPARISON_FUNC_LESS_EQUAL:    return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+                case COMPARISON_FUNC_GREATER:       return D3D12_COMPARISON_FUNC_GREATER;
+                case COMPARISON_FUNC_NOT_EQUAL:     return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+                case COMPARISON_FUNC_GREATER_EQUAL: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+                case COMPARISON_FUNC_ALWAYS:        return D3D12_COMPARISON_FUNC_ALWAYS;
+                default:
+                    assert(false); // Invalid comparison func, did we add something to the enum?
+            }
+
+            return D3D12_COMPARISON_FUNC_NEVER;
+        }
+
+        D3D12_DEPTH_STENCILOP_DESC PipelineHandlerDX12::ToDepthStencilOpDesc(const DepthStencilOpDesc& depthStencilOpDesc)
+        {
+            D3D12_DEPTH_STENCILOP_DESC desc;
+            desc.StencilFailOp = ToStencilOp(depthStencilOpDesc.stencilFailOp);
+            desc.StencilDepthFailOp = ToStencilOp(depthStencilOpDesc.stencilDepthFailOp);
+            desc.StencilPassOp = ToStencilOp(depthStencilOpDesc.stencilPassOp);
+            desc.StencilFunc = ToComparisonFunc(depthStencilOpDesc.stencilFunc);
+
+            return desc;
+        }
+
+        D3D12_STENCIL_OP PipelineHandlerDX12::ToStencilOp(const StencilOp& op)
+        {
+            switch (op)
+            {
+                case STENCIL_OP_KEEP:     return D3D12_STENCIL_OP_KEEP;
+                case STENCIL_OP_ZERO:     return D3D12_STENCIL_OP_ZERO;
+                case STENCIL_OP_REPLACE:  return D3D12_STENCIL_OP_REPLACE;
+                case STENCIL_OP_INCR_SAT: return D3D12_STENCIL_OP_INCR_SAT;
+                case STENCIL_OP_DECR_SAT: return D3D12_STENCIL_OP_DECR_SAT;
+                case STENCIL_OP_INVERT:   return D3D12_STENCIL_OP_INVERT;
+                case STENCIL_OP_INCR:     return D3D12_STENCIL_OP_INCR;
+                case STENCIL_OP_DECR:     return D3D12_STENCIL_OP_DECR;
+                default:
+                    assert(false); // Invalid stencil op, did we add something to the enum?
+            }
+
+            return D3D12_STENCIL_OP_KEEP;
         }
 
         D3D12_ROOT_SIGNATURE_FLAGS PipelineHandlerDX12::CalculateRootSigFlags(std::vector<D3D12_ROOT_PARAMETER>& parameters)

@@ -53,7 +53,7 @@ namespace Renderer
         CullMode cullMode = CULL_MODE_BACK;
         FrontFaceState frontFaceMode = FRONT_FACE_STATE_CLOCKWISE;
         bool depthBiasEnabled = false;
-        f32 depthBias = 0.0f;
+        i32 depthBias = 0;
         f32 depthBiasClamp = 0.0f;
         f32 depthBiasSlopeFactor = 0.0f;
         SampleCount sampleCount = SAMPLE_COUNT_1;
@@ -343,16 +343,17 @@ namespace Renderer
         InputClassification inputClassification = INPUT_CLASSIFICATION_PER_VERTEX;
         u32 instanceDataStepRate = 0;
 
-        const std::string GetName() const
+        const char* GetName() const
         {
-            return std::string(_name);
+            return _name;
         }
         void SetName(const std::string& name)
         {
-            assert(name.length() > INPUT_LAYOUT_NAME_MAX_LENGTH); // The name you tried to set on the input layout is too long, either make it shorter or increase INPUT_LAYOUT_NAME_MAX_LENGTH
+            assert(name.length() < INPUT_LAYOUT_NAME_MAX_LENGTH); // The name you tried to set on the input layout is too long, either make it shorter or increase INPUT_LAYOUT_NAME_MAX_LENGTH
             memset(_name, 0, INPUT_LAYOUT_NAME_MAX_LENGTH);
             strcpy(_name, name.data());
         }
+
     private:
         char _name[INPUT_LAYOUT_NAME_MAX_LENGTH] = {};
     };

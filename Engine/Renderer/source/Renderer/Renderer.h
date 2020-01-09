@@ -3,6 +3,7 @@
 #include <Utils/StringUtils.h>
 #include <Utils/RobinHood.h>
 #include "RenderGraph.h"
+#include "RenderGraphBuilder.h"
 #include "RenderLayer.h"
 #include "RenderPass.h"
 #include "CommandList.h"

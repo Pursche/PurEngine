@@ -2,6 +2,7 @@
 #include <Core.h>
 #include <vector>
 #include "d3dx12.h"
+#include <Utils/RobinHood.h>
 
 #include "../../../Descriptors/GraphicsPipelineDesc.h"
 #include "../../../Descriptors/ComputePipelineDesc.h"
@@ -12,6 +13,7 @@ namespace Renderer
     {
         class RenderDeviceDX12;
         class ShaderHandlerDX12;
+        class ImageHandlerDX12;
 
         class PipelineHandlerDX12
         {
@@ -21,8 +23,8 @@ namespace Renderer
             PipelineHandlerDX12();
             ~PipelineHandlerDX12();
 
-            GraphicsPipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, const GraphicsPipelineDesc& desc);
-            ComputePipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, const ComputePipelineDesc& desc);
+            GraphicsPipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc);
+            ComputePipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const ComputePipelineDesc& desc);
 
             ID3D12PipelineState* GetPSO(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].pso; }
             ID3D12PipelineState* GetPSO(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].pso; }
@@ -65,6 +67,11 @@ namespace Renderer
             D3D12_RASTERIZER_DESC ToRasterizerDesc(const RasterizerState& rasterizerState);
             D3D12_FILL_MODE ToFillMode(const FillMode& fillMode);
             D3D12_CULL_MODE ToCullMode(const CullMode& cullMode);
+
+            D3D12_DEPTH_STENCIL_DESC ToDepthStencilDesc(const DepthStencilState& depthStencilState);
+            D3D12_COMPARISON_FUNC ToComparisonFunc(const ComparisonFunc& comparisonFunc);
+            D3D12_DEPTH_STENCILOP_DESC ToDepthStencilOpDesc(const DepthStencilOpDesc& depthStencilOpDesc);
+            D3D12_STENCIL_OP ToStencilOp(const StencilOp& op);
 
             D3D12_ROOT_SIGNATURE_FLAGS CalculateRootSigFlags(std::vector<D3D12_ROOT_PARAMETER>& parameters);
             

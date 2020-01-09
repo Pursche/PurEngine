@@ -12,6 +12,8 @@
 
 namespace Renderer
 {
+    class RenderGraph;
+
     struct GraphicsPipelineDesc
     {
         static const int MAX_CONSTANT_BUFFERS = 8;
@@ -27,6 +29,7 @@ namespace Renderer
         // Rendertargets
         RenderPassMutableResource renderTargets[MAX_RENDER_TARGETS]{ RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid() };
         RenderPassMutableResource depthStencil = RenderPassMutableResource::Invalid();
+        RenderGraph* renderGraph = nullptr;
 
         // Shaders
         VertexShaderID vertexShader = VertexShaderID::Invalid();

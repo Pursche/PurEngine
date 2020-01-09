@@ -104,7 +104,7 @@ namespace Renderer
 
         DepthImageID ImageHandlerDX12::CreateDepthImage(RenderDeviceDX12* device, const DepthImageDesc& desc)
         {
-            size_t nextHandle = _images.size();
+            size_t nextHandle = _depthImages.size();
 
             // Make sure we haven't exceeded the limit of the ImageID type, if this hits you need to change type of ImageID to something bigger
             assert(nextHandle < DepthImageID::MaxValue());
@@ -202,7 +202,7 @@ namespace Renderer
             return DepthImageID(static_cast<type>(nextHandle));
         }
 
-        const ImageDesc& ImageHandlerDX12::GetImageDesc(const ImageID id)
+        const ImageDesc& ImageHandlerDX12::GetDescriptor(const ImageID id)
         {
             using type = type_safe::underlying_type<ImageID>;
 
@@ -211,13 +211,31 @@ namespace Renderer
             return _images[static_cast<type>(id)].desc;
         }
 
-        const DepthImageDesc& ImageHandlerDX12::GetDepthImageDesc(const DepthImageID id)
+        const DepthImageDesc& ImageHandlerDX12::GetDescriptor(const DepthImageID id)
         {
             using type = type_safe::underlying_type<DepthImageID>;
 
             // Lets make sure this id exists
             assert(_depthImages.size() > static_cast<type>(id));
             return _depthImages[static_cast<type>(id)].desc;
+        }
+
+        DXGI_FORMAT ImageHandlerDX12::GetDXGIFormat(const ImageID id)
+        {
+            using type = type_safe::underlying_type<ImageID>;
+
+            // Lets make sure this id exists
+            assert(_images.size() > static_cast<type>(id));
+            return GetDXGIFormat(_images[static_cast<type>(id)].desc.format);
+        }
+
+        DXGI_FORMAT ImageHandlerDX12::GetDXGIFormat(const DepthImageID id)
+        {
+            using type = type_safe::underlying_type<DepthImageID>;
+
+            // Lets make sure this id exists
+            assert(_depthImages.size() > static_cast<type>(id));
+            return GetDXGIFormat(_depthImages[static_cast<type>(id)].desc.format);
         }
 
         DXGI_FORMAT ImageHandlerDX12::GetDXGIFormat(ImageFormat format)

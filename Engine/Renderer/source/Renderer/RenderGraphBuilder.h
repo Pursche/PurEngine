@@ -11,10 +11,11 @@
 
 namespace Renderer
 {
+    class Renderer;
     class CommandList;
     class RenderGraph;
 
-    class RenderPassBuilder
+    class RenderGraphBuilder
     {
     public:
         enum WriteMode
@@ -54,20 +55,28 @@ namespace Renderer
         void SetRasterizerState(RasterizerState& rasterizerState) { _rasterizerState = rasterizerState; }
         void SetDepthStencilState(DepthStencilState& depthStencilState) { _depthStencilState = depthStencilState; }
 
+        ImageID GetImage(RenderPassResource resource);
+        ImageID GetImage(RenderPassMutableResource resource);
+        DepthImageID GetDepthImage(RenderPassResource resource);
+        DepthImageID GetDepthImage(RenderPassMutableResource resource);
+
     private:
         void Compile(CommandList* commandList);
+        RenderGraphBuilder(Renderer* renderer); // This is private so only a RenderGraph can create it
 
-        RenderPassBuilder(RenderGraph* renderGraph)
-            : _renderGraph(renderGraph)
-        {
-
-        }
+        RenderPassResource GetResource(ImageID id);
+        RenderPassResource GetResource(DepthImageID id);
+        RenderPassMutableResource GetMutableResource(ImageID id);
+        RenderPassMutableResource GetMutableResource(DepthImageID id);
 
     private:
         RasterizerState _rasterizerState;
         DepthStencilState _depthStencilState;
-        RenderGraph* _renderGraph;
+        Renderer* _renderer;
 
-        template<typename T> friend class RenderPass;
+        std::vector<ImageID> _trackedImages;
+        std::vector<DepthImageID> _trackedDepthImages;
+
+        friend class RenderGraph;
     };
 }

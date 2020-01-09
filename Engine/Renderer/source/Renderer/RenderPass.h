@@ -2,7 +2,6 @@
 #include <Core.h>
 #include <vector>
 #include <functional>
-#include "RenderPassBuilder.h"
 
 #include "CommandList.h"
 #include "Descriptors/GraphicsPipelineDesc.h"
@@ -10,36 +9,35 @@
 
 namespace Renderer
 {
+    class Renderer;
     class RenderLayer;
     class RenderGraph;
+    class RenderGraphBuilder;
 
     class IRenderPass
     {
     public:
-        virtual bool Setup() = 0;
+        virtual bool Setup(RenderGraphBuilder* renderGraphBuilder) = 0;
         virtual void Execute() = 0;
     };
 
     template <typename PassData>
     class RenderPass : public IRenderPass
     {
-        typedef std::function<bool(PassData&, RenderPassBuilder&)> SetupFunction;
+        typedef std::function<bool(PassData&, RenderGraphBuilder&)> SetupFunction;
         typedef std::function<void(PassData&, CommandList&)> ExecuteFunction;
 
     private:
-        RenderPass(RenderGraph* renderGraph, std::string name, SetupFunction onSetup, ExecuteFunction onExecute)
-            : _renderPassBuilder(renderGraph)
+        RenderPass(std::string name, SetupFunction onSetup, ExecuteFunction onExecute)
         {
-            //_renderPassBuilder.SetCommandList(&_commandList);
-
             _name = name;
             _onSetup = onSetup;
             _onExecute = onExecute;
         }
 
-        bool Setup() override
+        bool Setup(RenderGraphBuilder* renderGraphBuilder) override
         {
-            return _onSetup(_data, _renderPassBuilder);
+            return _onSetup(_data, *renderGraphBuilder);
         }
 
         void Execute() override
@@ -56,7 +54,6 @@ namespace Renderer
         ExecuteFunction _onExecute;
 
         PassData _data;
-        RenderPassBuilder _renderPassBuilder;
         CommandList _commandList;
 
         GraphicsPipelineID _graphicsPipeline = GraphicsPipelineID::Invalid();

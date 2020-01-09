@@ -4,6 +4,7 @@
 #include "Backend/ImageHandlerDX12.h"
 #include "Backend/ShaderHandlerDX12.h"
 #include "Backend/ModelHandlerDX12.h"
+#include "Backend/PipelineHandlerDX12.h"
 
 namespace Renderer
 {
@@ -14,6 +15,7 @@ namespace Renderer
         _imageHandler = new Backend::ImageHandlerDX12();
         _shaderHandler = new Backend::ShaderHandlerDX12();
         _modelHandler = new Backend::ModelHandlerDX12();
+        _pipelineHandler = new Backend::PipelineHandlerDX12();
     }
 
     void RendererDX12::InitWindow(Window* window)
@@ -31,14 +33,14 @@ namespace Renderer
         return _imageHandler->CreateDepthImage(_device, desc);
     }
 
-    GraphicsPipelineID RendererDX12::CreatePipeline(GraphicsPipelineDesc& /*desc*/)
+    GraphicsPipelineID RendererDX12::CreatePipeline(GraphicsPipelineDesc& desc)
     {
-        return GraphicsPipelineID::Invalid();
+        return _pipelineHandler->CreatePipeline(_device, _shaderHandler, _imageHandler, desc);
     }
 
-    ComputePipelineID RendererDX12::CreatePipeline(ComputePipelineDesc& /*desc*/)
+    ComputePipelineID RendererDX12::CreatePipeline(ComputePipelineDesc& desc)
     {
-        return ComputePipelineID::Invalid();
+        return _pipelineHandler->CreatePipeline(_device, _shaderHandler, _imageHandler, desc);
     }
 
     ModelID RendererDX12::LoadModel(ModelDesc& desc)

@@ -123,6 +123,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         viewConstantBuffer.Apply(frameIndex);
 
         Renderer::RenderGraphDesc renderGraphDesc;
+        renderGraphDesc.renderer = renderer;
         Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc);
 
         mainLayer.RegisterModel(cubeModel, cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
@@ -135,15 +136,16 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
             };
 
             renderGraph.AddPass<DepthPrepassData>("Depth Prepass",
-            [&](DepthPrepassData& data, Renderer::RenderPassBuilder& builder) // Setup
+            [&](DepthPrepassData& data, Renderer::RenderGraphBuilder& builder) // Setup
             { 
-                data.depth = builder.Write(mainDepth, Renderer::RenderPassBuilder::WriteMode::WRITE_MODE_RENDERTARGET, Renderer::RenderPassBuilder::LoadMode::LOAD_MODE_CLEAR);
+                data.depth = builder.Write(mainDepth, Renderer::RenderGraphBuilder::WriteMode::WRITE_MODE_RENDERTARGET, Renderer::RenderGraphBuilder::LoadMode::LOAD_MODE_CLEAR);
 
                 return true; // Return true from setup to enable this pass, return false to disable it
             },
             [&](DepthPrepassData& data, Renderer::CommandList& commandList) // Execute
             {
                 Renderer::GraphicsPipelineDesc pipelineDesc;
+                pipelineDesc.renderGraph = &renderGraph;
 
                 // Shaders
                 Renderer::VertexShaderDesc vertexShaderDesc;

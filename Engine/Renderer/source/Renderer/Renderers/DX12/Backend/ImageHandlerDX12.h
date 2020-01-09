@@ -23,8 +23,11 @@ namespace Renderer
             ImageID CreateImage(RenderDeviceDX12* device, const ImageDesc& desc);
             DepthImageID CreateDepthImage(RenderDeviceDX12* device, const DepthImageDesc& desc);
 
-            const ImageDesc& GetImageDesc(const ImageID id);
-            const DepthImageDesc& GetDepthImageDesc(const DepthImageID id);
+            const ImageDesc& GetDescriptor(const ImageID id);
+            const DepthImageDesc& GetDescriptor(const DepthImageID id);
+
+            DXGI_FORMAT GetDXGIFormat(const ImageID id);
+            DXGI_FORMAT GetDXGIFormat(const DepthImageID id);
 
         private:
             struct Image

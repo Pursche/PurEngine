@@ -4,9 +4,12 @@
 
 namespace Renderer
 {
+    class Renderer;
+
     struct RenderGraphDesc
     {
         std::string name;
         std::vector<std::string> shaderPaths;
+        Renderer* renderer;
     };
 }

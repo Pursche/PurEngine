@@ -9,6 +9,7 @@ namespace Renderer
         class ImageHandlerDX12;
         class ShaderHandlerDX12;
         class ModelHandlerDX12;
+        class PipelineHandlerDX12;
     }
     
     class RendererDX12 : public Renderer
@@ -40,5 +41,6 @@ namespace Renderer
         Backend::ImageHandlerDX12* _imageHandler = nullptr;
         Backend::ShaderHandlerDX12* _shaderHandler = nullptr;
         Backend::ModelHandlerDX12* _modelHandler = nullptr;
+        Backend::PipelineHandlerDX12* _pipelineHandler = nullptr;
     };
 }
