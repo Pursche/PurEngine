@@ -71,6 +71,7 @@ namespace Cooker
                 }
             }
 
+            int errorCount = 0;
             foreach (string luaFile in luaFiles)
             {
                 string output = luaFile;
@@ -127,22 +128,25 @@ namespace Cooker
                         }
                         else if (error != "")
                         {
-                            errors.Add(error + " (" + cooker.GetType().GetTypeInfo().Name + ")");
+                            errors.Add(" (" + cooker.GetType().GetTypeInfo().Name + ") " + error);
                         }
                     }
                     else if (error != "")
                     {
-                        errors.Add(error + " (" + cooker.GetType().GetTypeInfo().Name + ")");
+                        errors.Add(" (" + cooker.GetType().GetTypeInfo().Name + ") " + error);
                     }
                 }
 
+                int pCode = 0;
                 if (!availableCooker)
                 {
-                    output += " Could not find a suitable cooker";
+                    output += "(0): error P1: file error: Could not find a suitable cooker";
+                    pCode = 1;
                 }
                 else if (!wasCooked)
                 {
-                    output += " Could not successfully be cooked";
+                    output += "(0): error P2: file error: Could not successfully be cooked";
+                    pCode = 2;
                 }
                 else
                 {
@@ -155,12 +159,13 @@ namespace Cooker
                 if (availableCooker && wasCooked)
                 {
                     Console.ForegroundColor = ConsoleColor.Green;
-                    Console.Write("[SUCCESS]: ");
+                    //Console.Write("[SUCCESS]: ");
                 }
                 else
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.Write("[ERROR]: ");
+                    //Console.Write("[ERROR]: ");
+                    errorCount++;
                 }
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine(output);
@@ -169,13 +174,16 @@ namespace Cooker
                 {
                     foreach (string error in errors)
                     {
-                        Console.WriteLine("     [Reason]: " + error);
+                        Console.WriteLine("(0): warning P" + pCode + " : " + error);
                     }
                 }
             }
 
             if (luaFiles.Count > 1)
                 Console.WriteLine("Cooking done in " + totalTime.Elapsed.ToString());
+
+            if (errorCount > 0)
+                Environment.Exit(1);
         }
     }
 }
