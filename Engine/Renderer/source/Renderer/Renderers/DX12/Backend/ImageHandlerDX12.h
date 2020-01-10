@@ -56,13 +56,13 @@ namespace Renderer
             };
 
         private:
-            ::DXGI_FORMAT GetDXGIFormat(ImageFormat format);
+            static ::DXGI_FORMAT ToDXGIFormat(ImageFormat format);
 
-            ::DXGI_FORMAT GetBaseFormat(DepthImageFormat format);
-            ::DXGI_FORMAT GetDXGIFormat(DepthImageFormat format);
-            ::DXGI_FORMAT GetDSVFormat(DepthImageFormat format);
-            ::DXGI_FORMAT GetDepthFormat(DepthImageFormat format);
-            u32 GetNumElements(DepthImageFormat format);
+            static ::DXGI_FORMAT ToBaseFormat(DepthImageFormat format);
+            static ::DXGI_FORMAT ToDXGIFormat(DepthImageFormat format);
+            static ::DXGI_FORMAT ToDSVFormat(DepthImageFormat format);
+            static ::DXGI_FORMAT ToDepthFormat(DepthImageFormat format);
+            static u32 ToNumElements(DepthImageFormat format);
             
         private:
             std::vector<Image> _images;

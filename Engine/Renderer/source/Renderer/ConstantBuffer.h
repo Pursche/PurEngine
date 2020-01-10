@@ -25,7 +25,7 @@ namespace Renderer
             backend->Apply(frameIndex, &resource, GetSize());
         }
 
-        Backend::ConstantBufferBackend* backend;
+        Backend::ConstantBufferBackend* backend = nullptr;
 
     protected:
         ConstantBuffer() {}; // This has to be created through Renderer::CreateConstantBuffer<T>

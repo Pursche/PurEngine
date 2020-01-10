@@ -12,6 +12,7 @@ namespace Renderer
     class RenderGraph
     {
     public:
+        ~RenderGraph();
 
         template <typename PassData>
         void AddPass(std::string name, std::function<bool(PassData&, RenderGraphBuilder&)> onSetup, std::function<void(PassData&, CommandList&)> onExecute)

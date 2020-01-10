@@ -12,13 +12,13 @@ namespace Renderer
 
             static const u32 FRAME_BUFFER_COUNT = 3; // TODO: Don't hardcode this
 
-            ID3D12Resource* uploadHeap[FRAME_BUFFER_COUNT];
-            void* gpuAdress[FRAME_BUFFER_COUNT];
+            ID3D12Resource* uploadHeap[FRAME_BUFFER_COUNT] = {};
+            void* gpuAddress[FRAME_BUFFER_COUNT] = {};
 
         private:
             void Apply(u32 frameIndex, void* data, size_t size) override
             {
-                memcpy(gpuAdress[frameIndex], data, size);
+                memcpy(gpuAddress[frameIndex], data, size);
             }
         };
     }

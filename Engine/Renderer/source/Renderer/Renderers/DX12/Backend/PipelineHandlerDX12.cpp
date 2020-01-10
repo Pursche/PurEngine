@@ -30,9 +30,9 @@ namespace Renderer
             HRESULT result;
             size_t nextID;
 
-            u64 descHash = XXHash64::hash(&desc, sizeof(desc), 0);
+            u64 cacheDescHash = CalculateCacheDescHash(desc);
             
-            if (TryFindExistingGPipeline(descHash, nextID))
+            if (TryFindExistingGPipeline(cacheDescHash, nextID))
             {
                 return GraphicsPipelineID(static_cast<gIDType>(nextID));
             }
@@ -44,11 +44,12 @@ namespace Renderer
 
             GraphicsPipeline pipeline;
             pipeline.desc = desc;
+            pipeline.cacheDescHash = cacheDescHash;
 
             // -- create root descriptors --
             // Figure out how many we need
             u8 numRootDescriptors = 0;
-            for (auto& cbState : desc.constantBufferStates)
+            for (auto& cbState : desc.states.constantBufferStates)
             {
                 if (!cbState.enabled)
                     break;
@@ -70,7 +71,7 @@ namespace Renderer
             {
                 rootParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
                 rootParameters[i].Descriptor = rootDescriptors[i];
-                rootParameters[i].ShaderVisibility = ToD3D12ShaderVisibility(desc.constantBufferStates[i].shaderVisibility);
+                rootParameters[i].ShaderVisibility = ToD3D12ShaderVisibility(desc.states.constantBufferStates[i].shaderVisibility);
             }
 
             // Create root signature
@@ -89,7 +90,7 @@ namespace Renderer
 
             // -- create input layout --
             u8 numInputLayouts = 0;
-            for (auto& inputLayout : desc.inputLayouts)
+            for (auto& inputLayout : desc.states.inputLayouts)
             {
                 if (!inputLayout.enabled)
                     break;
@@ -100,13 +101,13 @@ namespace Renderer
             std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayouts(numInputLayouts);
             for (u8 i = 0; i < numInputLayouts; i++)
             {
-                inputLayouts[i].SemanticName = desc.inputLayouts[i].GetName();
-                inputLayouts[i].SemanticIndex = desc.inputLayouts[i].index;
-                inputLayouts[i].Format = ToDXGIFormat(desc.inputLayouts[i].format);
-                inputLayouts[i].InputSlot = desc.inputLayouts[i].slot;
-                inputLayouts[i].AlignedByteOffset = desc.inputLayouts[i].alignedByteOffset;
-                inputLayouts[i].InputSlotClass = ToD3D12InputClassification(desc.inputLayouts[i].inputClassification);
-                inputLayouts[i].InstanceDataStepRate = desc.inputLayouts[i].instanceDataStepRate;
+                inputLayouts[i].SemanticName = desc.states.inputLayouts[i].GetName();
+                inputLayouts[i].SemanticIndex = desc.states.inputLayouts[i].index;
+                inputLayouts[i].Format = ToDXGIFormat(desc.states.inputLayouts[i].format);
+                inputLayouts[i].InputSlot = desc.states.inputLayouts[i].slot;
+                inputLayouts[i].AlignedByteOffset = desc.states.inputLayouts[i].alignedByteOffset;
+                inputLayouts[i].InputSlotClass = ToD3D12InputClassification(desc.states.inputLayouts[i].inputClassification);
+                inputLayouts[i].InstanceDataStepRate = desc.states.inputLayouts[i].instanceDataStepRate;
             }
 
             // fill out an input layout description structure
@@ -117,27 +118,28 @@ namespace Renderer
             // -- create a pipeline state object (PSO) --
             D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 
-            // Shaders
+            // Bind Shaders
             psoDesc.pRootSignature = pipeline.rootSig; // the root signature that describes the input data this pso needs
 
-            if (desc.vertexShader != VertexShaderID::Invalid())
-                psoDesc.VS = *static_cast<D3D12_SHADER_BYTECODE*>(shaderHandler->GetBytecode(desc.vertexShader));
-            if (desc.pixelShader != PixelShaderID::Invalid())
-                psoDesc.PS = *static_cast<D3D12_SHADER_BYTECODE*>(shaderHandler->GetBytecode(desc.pixelShader));
+            if (desc.states.vertexShader != VertexShaderID::Invalid())
+                psoDesc.VS = *static_cast<D3D12_SHADER_BYTECODE*>(shaderHandler->GetBytecode(desc.states.vertexShader));
+            if (desc.states.pixelShader != PixelShaderID::Invalid())
+                psoDesc.PS = *static_cast<D3D12_SHADER_BYTECODE*>(shaderHandler->GetBytecode(desc.states.pixelShader));
             // TODO(later): psoDesc.DS
             // TODO(later): psoDesc.HS
             // TODO(later): psoDesc.GS
 
-            // Render state
+            // Set Render state
             // TODO(maybe): psoDesc.StreamOuptut
-            psoDesc.BlendState = ToBlendDesc(desc.blendState);
+            psoDesc.BlendState = ToBlendDesc(desc.states.blendState);
             psoDesc.SampleMask = 0xffffffff; // TODO(maybe): Not hardcode this?
-            psoDesc.RasterizerState = ToRasterizerDesc(desc.rasterizerState);
-            psoDesc.DepthStencilState = ToDepthStencilDesc(desc.depthStencilState);
+            psoDesc.RasterizerState = ToRasterizerDesc(desc.states.rasterizerState);
+            psoDesc.DepthStencilState = ToDepthStencilDesc(desc.states.depthStencilState);
             psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
             // TODO(maybe): psoDesc.IBStripCutValue
             psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
+            // Render targets and depth stencil
             for (int i = 0; i < MAX_RENDER_TARGETS; i++)
             {
                 if (desc.renderTargets[i] == RenderPassMutableResource::Invalid())
@@ -153,10 +155,16 @@ namespace Renderer
                 DepthImageID depthImageId = desc.renderGraph->GetBuilder()->GetDepthImage(desc.depthStencil);
                 psoDesc.DSVFormat = imageHandler->GetDXGIFormat(depthImageId);
             }
-            // TODO(immediate): psoDesc.SampleDesc;
+            psoDesc.SampleDesc = CalculateSampleDesc(imageHandler, desc);
+
+            // Other settings I am unsure about
             // TODO(maybe): psoDesc.NodeMask;
             // TODO(maybe): psoDesc.CachedPSO;
             // TODO(maybe): psoDesc.Flags;
+
+            // create the pso
+            result = device->_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipeline.pso));
+            assert(SUCCEEDED(result)); // Failed to create PSO
 
             _graphicsPipelines.push_back(pipeline);
 
@@ -182,7 +190,7 @@ namespace Renderer
 
             ComputePipeline pipeline;
             pipeline.desc = desc;
-            pipeline.descHash = descHash;
+            pipeline.cacheDescHash = descHash;
 
             // TODO(soon): Create compute pipeline here
 
@@ -191,13 +199,13 @@ namespace Renderer
             return ComputePipelineID(static_cast<cIDType>(nextID));
         }
 
-        bool PipelineHandlerDX12::TryFindExistingGPipeline(u64 descHash, size_t& id)
+        bool PipelineHandlerDX12::TryFindExistingGPipeline(u64 cacheDescHash, size_t& id)
         {
             id = 0;
 
             for (auto& pipeline : _graphicsPipelines)
             {
-                if (descHash == pipeline.descHash)
+                if (cacheDescHash == pipeline.cacheDescHash)
                 {
                     return true;
                 }
@@ -207,13 +215,13 @@ namespace Renderer
             return false;
         }
 
-        bool PipelineHandlerDX12::TryFindExistingCPipeline(u64 descHash, size_t& id)
+        bool PipelineHandlerDX12::TryFindExistingCPipeline(u64 cacheDescHash, size_t& id)
         {
             id = 0;
 
             for (auto& pipeline : _computePipelines)
             {
-                if (descHash == pipeline.descHash)
+                if (cacheDescHash == pipeline.cacheDescHash)
                 {
                     return true;
                 }
@@ -495,7 +503,7 @@ namespace Renderer
             desc.ForcedSampleCount = state.sampleCount;
             desc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF; // TODO
 
-            return D3D12_RASTERIZER_DESC();
+            return desc;
         }
 
         D3D12_FILL_MODE PipelineHandlerDX12::ToFillMode(const FillMode& fillMode)
@@ -645,7 +653,72 @@ namespace Renderer
             return flags;
         }
 
-        
+        DXGI_SAMPLE_DESC PipelineHandlerDX12::CalculateSampleDesc(ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc)
+        {
+            DXGI_SAMPLE_DESC sampleDesc;
 
+            u32 sampleCount = std::numeric_limits<u32>::max();
+
+            for (auto& renderTarget : desc.renderTargets)
+            {
+                if (renderTarget == RenderPassMutableResource::Invalid())
+                    break;
+
+                ImageID imageID = desc.renderGraph->GetBuilder()->GetImage(renderTarget);
+                const ImageDesc& descriptor = imageHandler->GetDescriptor(imageID);
+
+                u32 descSampleCount = SampleCountToInt(descriptor.sampleCount);
+
+                if (sampleCount != std::numeric_limits<u32>::max() && sampleCount != descSampleCount)
+                {
+                    assert(false); // It seems like we bound rendertargets (or depthstencil) with different sample counts, that's a big no-no
+                }
+                
+                sampleCount = descSampleCount;
+            }
+
+            if (desc.depthStencil != RenderPassMutableResource::Invalid())
+            {
+                DepthImageID imageID = desc.renderGraph->GetBuilder()->GetDepthImage(desc.depthStencil);
+                const DepthImageDesc& descriptor = imageHandler->GetDescriptor(imageID);
+
+                u32 descSampleCount = SampleCountToInt(descriptor.sampleCount);
+
+                if (sampleCount != std::numeric_limits<u32>::max() && sampleCount != descSampleCount)
+                {
+                    assert(false); // It seems like we bound rendertargets (or depthstencil) with different sample counts, that's a big no-no
+                }
+
+                sampleCount = descSampleCount;
+            }
+
+            sampleDesc.Count = sampleCount;
+            sampleDesc.Quality = (sampleCount == 1) ? 0 : sampleCount;
+
+            return sampleDesc;
+        }
+
+        u64 PipelineHandlerDX12::CalculateCacheDescHash(const GraphicsPipelineDesc& desc)
+        {
+            GraphicsPipelineCacheDesc cacheDesc;
+            cacheDesc.states = desc.states;
+
+            for (int i = 0; i < MAX_RENDER_TARGETS; i++)
+            {
+                if (desc.renderTargets[i] == RenderPassMutableResource::Invalid())
+                    break;
+
+                cacheDesc.renderTargets[i] = desc.renderGraph->GetBuilder()->GetImage(desc.renderTargets[i]);
+            }
+
+            if (desc.depthStencil != RenderPassMutableResource::Invalid())
+            {
+                cacheDesc.depthStencil = desc.renderGraph->GetBuilder()->GetDepthImage(desc.depthStencil);
+            }
+
+            u64 hash = XXHash64::hash(&cacheDesc, sizeof(cacheDesc), 0);
+
+            return hash;
+        }
     }
 }

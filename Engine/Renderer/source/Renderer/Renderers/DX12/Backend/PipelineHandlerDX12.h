@@ -36,19 +36,25 @@ namespace Renderer
             struct GraphicsPipeline
             {
                 GraphicsPipelineDesc desc;
-                u64 descHash;
+                u64 cacheDescHash;
 
-                ID3D12PipelineState* pso;
-                ID3D12RootSignature* rootSig;
+                ID3D12PipelineState* pso = nullptr;
+                ID3D12RootSignature* rootSig = nullptr;
+            };
+            struct GraphicsPipelineCacheDesc
+            {
+                GraphicsPipelineDesc::States states;
+                ImageID renderTargets[MAX_RENDER_TARGETS] = { ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid() };
+                DepthImageID depthStencil = DepthImageID::Invalid();
             };
 
             struct ComputePipeline
             {
                 ComputePipelineDesc desc;
-                u64 descHash;
+                u64 cacheDescHash;
 
-                ID3D12PipelineState* pso;
-                ID3D12RootSignature* rootSig;
+                ID3D12PipelineState* pso = nullptr;
+                ID3D12RootSignature* rootSig = nullptr;
             };
 
         private:
@@ -74,6 +80,9 @@ namespace Renderer
             D3D12_STENCIL_OP ToStencilOp(const StencilOp& op);
 
             D3D12_ROOT_SIGNATURE_FLAGS CalculateRootSigFlags(std::vector<D3D12_ROOT_PARAMETER>& parameters);
+            DXGI_SAMPLE_DESC CalculateSampleDesc(ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc);
+
+            u64 CalculateCacheDescHash(const GraphicsPipelineDesc& desc);
             
         private:
             std::vector<GraphicsPipeline> _graphicsPipelines;

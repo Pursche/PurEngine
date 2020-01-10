@@ -10,6 +10,11 @@ namespace Renderer
         return true;
     }
 
+    RenderGraph::~RenderGraph()
+    {
+
+    }
+
     /*void RenderGraph::AddPass(RenderPass& pass)
     {
         _passes.push_back(pass);

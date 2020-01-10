@@ -62,7 +62,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         Matrix viewMatrix; // 64 bytes
         Matrix projMatrix; // 64 bytes
 
-        float padding[128];
+        float padding[128] = {};
     };
 
     Renderer::ConstantBuffer<ViewConstantBuffer> viewConstantBuffer = renderer->CreateConstantBuffer<ViewConstantBuffer>();
@@ -93,7 +93,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         Vector4 colorMultiplier; // 16 bytes
         Matrix modelMatrix; // 64 bytes
 
-        float padding[128];
+        float padding[128] = {};
     };
 
     Renderer::ConstantBuffer<ModelConstantBuffer> modelConstantBuffer = renderer->CreateConstantBuffer<ModelConstantBuffer>();
@@ -111,9 +111,9 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
             mainWindow.ConfirmExit();
             break;
         }
-        mainWindow.Update(deltaTime);
+        mainWindow.Update(deltaTime); // +0.75kb
 
-        camera.Update(deltaTime);
+        camera.Update(deltaTime); // +0.69kb
 
         //oldRenderer.SetViewMatrix(camera.GetViewMatrix().Inverted());
         //oldRenderer.Update(deltaTime);
@@ -124,7 +124,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
         Renderer::RenderGraphDesc renderGraphDesc;
         renderGraphDesc.renderer = renderer;
-        Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc);
+        Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc); // TODO(important): Fix RenderGraph memory allocation, maybe a per-frame allocator?
 
         mainLayer.RegisterModel(cubeModel, cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
         
@@ -149,27 +149,27 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                 // Shaders
                 Renderer::VertexShaderDesc vertexShaderDesc;
-                vertexShaderDesc.path = "Data/shaders/test.vs.hlsl.cso";
-                pipelineDesc.vertexShader = renderer->LoadShader(vertexShaderDesc); // This will load shader or use cached loaded shader
+                vertexShaderDesc.path = "Data/shaders/depthPrepass.vs.hlsl.cso";
+                pipelineDesc.states.vertexShader = renderer->LoadShader(vertexShaderDesc); // This will load shader or use cached loaded shader
 
-                Renderer::PixelShaderDesc pixelShaderDesc;
-                pixelShaderDesc.path = "Data/shaders/test.ps.hlsl.cso";
-                pipelineDesc.pixelShader = renderer->LoadShader(pixelShaderDesc); // This will load shader or use cached loaded shader
+                //Renderer::PixelShaderDesc pixelShaderDesc;
+                //pixelShaderDesc.path = "Data/shaders/depthPrepass.ps.hlsl.cso";
+                //pipelineDesc.pixelShader = renderer->LoadShader(pixelShaderDesc); // This will load shader or use cached loaded shader
 
                 // Constant buffers  TODO: Improve on this, if I set state 0 and 3 it won't work etc...
-                pipelineDesc.constantBufferStates[0].enabled = true; // ViewCB
-                pipelineDesc.constantBufferStates[0].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
-                pipelineDesc.constantBufferStates[1].enabled = true; // ModelCB
-                pipelineDesc.constantBufferStates[1].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
+                pipelineDesc.states.constantBufferStates[0].enabled = true; // ViewCB
+                pipelineDesc.states.constantBufferStates[0].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
+                pipelineDesc.states.constantBufferStates[1].enabled = true; // ModelCB
+                pipelineDesc.states.constantBufferStates[1].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
 
                 // Input layouts TODO: Improve on this, if I set state 0 and 3 it won't work etc...
-                pipelineDesc.inputLayouts[0].enabled = true;
-                pipelineDesc.inputLayouts[0].SetName("POSITION");
-                pipelineDesc.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
-                pipelineDesc.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
+                pipelineDesc.states.inputLayouts[0].enabled = true;
+                pipelineDesc.states.inputLayouts[0].SetName("POSITION");
+                pipelineDesc.states.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
+                pipelineDesc.states.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
 
                 // Depth state
-                pipelineDesc.depthStencilState.depthWriteEnable = true;
+                pipelineDesc.states.depthStencilState.depthWriteEnable = true;
 
                 // Render targets
                 pipelineDesc.depthStencil = data.depth;

@@ -241,10 +241,10 @@ namespace Renderer
                 CD3DX12_RANGE readRange(0, 0);
 
                 // Map the resource heap to get a gpu virtual address to the beginning of the heap
-                result = cbBackend->uploadHeap[i]->Map(0, &readRange, reinterpret_cast<void**>(reinterpret_cast<void**>(&cbBackend->gpuAdress[i])));
+                result = cbBackend->uploadHeap[i]->Map(0, &readRange, reinterpret_cast<void**>(reinterpret_cast<void**>(&cbBackend->gpuAddress[i])));
                 assert(SUCCEEDED(result)); // Could not map to gpu address
 
-                ZeroMemory(cbBackend->gpuAdress[i], size);
+                ZeroMemory(cbBackend->gpuAddress[i], size);
             }
 
             return cbBackend;

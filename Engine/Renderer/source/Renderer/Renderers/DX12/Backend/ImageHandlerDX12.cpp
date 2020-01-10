@@ -37,7 +37,7 @@ namespace Renderer
             assert(desc.depth > 0); // Make sure the depth is valid
             assert(desc.format != IMAGE_FORMAT_UNKNOWN); // Make sure the format is valid
 
-            DXGI_FORMAT format = GetDXGIFormat(desc.format);
+            DXGI_FORMAT format = ToDXGIFormat(desc.format);
             int sampleQuality = (desc.sampleCount == SAMPLE_COUNT_1) ? 0 : SampleCountToInt(desc.sampleCount);
 
             if (desc.depth == 1) // 2d image
@@ -124,12 +124,12 @@ namespace Renderer
 
             int sampleQuality = (desc.sampleCount == SAMPLE_COUNT_1) ? 0 : SampleCountToInt(desc.sampleCount);
 
-            resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(GetBaseFormat(desc.format),
+            resourceDesc = CD3DX12_RESOURCE_DESC::Tex2D(ToBaseFormat(desc.format),
                 desc.dimensions.x, desc.dimensions.y,
                 1, 1, SampleCountToInt(desc.sampleCount), sampleQuality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL );
 
             D3D12_CLEAR_VALUE clearValue = {};
-            clearValue.Format = GetDXGIFormat(desc.format);
+            clearValue.Format = ToDXGIFormat(desc.format);
             clearValue.DepthStencil.Depth = desc.depthClearValue;
             clearValue.DepthStencil.Stencil = desc.stencilClearValue;
 
@@ -150,7 +150,7 @@ namespace Renderer
 
             // Create DSV
             D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc;
-            dsvDesc.Format = GetDSVFormat(desc.format);
+            dsvDesc.Format = ToDSVFormat(desc.format);
 
             if (desc.sampleCount == SAMPLE_COUNT_1)
             {
@@ -180,7 +180,7 @@ namespace Renderer
 
             // Create SRV
             D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-            srvDesc.Format = GetDepthFormat(desc.format);
+            srvDesc.Format = ToDepthFormat(desc.format);
 
             if (dsvDesc.ViewDimension == D3D12_DSV_DIMENSION_TEXTURE2D)
             {
@@ -226,7 +226,7 @@ namespace Renderer
 
             // Lets make sure this id exists
             assert(_images.size() > static_cast<type>(id));
-            return GetDXGIFormat(_images[static_cast<type>(id)].desc.format);
+            return ToDXGIFormat(_images[static_cast<type>(id)].desc.format);
         }
 
         DXGI_FORMAT ImageHandlerDX12::GetDXGIFormat(const DepthImageID id)
@@ -235,10 +235,10 @@ namespace Renderer
 
             // Lets make sure this id exists
             assert(_depthImages.size() > static_cast<type>(id));
-            return GetDXGIFormat(_depthImages[static_cast<type>(id)].desc.format);
+            return ToDXGIFormat(_depthImages[static_cast<type>(id)].desc.format);
         }
 
-        DXGI_FORMAT ImageHandlerDX12::GetDXGIFormat(ImageFormat format)
+        DXGI_FORMAT ImageHandlerDX12::ToDXGIFormat(ImageFormat format)
         {
             switch (format)
             {
@@ -307,7 +307,7 @@ namespace Renderer
             return DXGI_FORMAT_UNKNOWN;
         }
 
-        DXGI_FORMAT ImageHandlerDX12::GetBaseFormat(DepthImageFormat format)
+        DXGI_FORMAT ImageHandlerDX12::ToBaseFormat(DepthImageFormat format)
         {
             switch(format)
             {
@@ -346,7 +346,7 @@ namespace Renderer
             return DXGI_FORMAT_UNKNOWN;
         }
 
-        DXGI_FORMAT ImageHandlerDX12::GetDXGIFormat(DepthImageFormat format)
+        DXGI_FORMAT ImageHandlerDX12::ToDXGIFormat(DepthImageFormat format)
         {
             switch (format)
             {
@@ -381,7 +381,7 @@ namespace Renderer
             return DXGI_FORMAT_UNKNOWN;
         }
 
-        DXGI_FORMAT ImageHandlerDX12::GetDSVFormat(DepthImageFormat format)
+        DXGI_FORMAT ImageHandlerDX12::ToDSVFormat(DepthImageFormat format)
         {
             switch (format)
             {
@@ -420,7 +420,7 @@ namespace Renderer
             return DXGI_FORMAT_UNKNOWN;
         }
 
-        DXGI_FORMAT ImageHandlerDX12::GetDepthFormat(DepthImageFormat format)
+        DXGI_FORMAT ImageHandlerDX12::ToDepthFormat(DepthImageFormat format)
         {
             switch (format)
             {
@@ -460,7 +460,7 @@ namespace Renderer
         }
 
         // TODO: I have no idea what I'm doing here, is this correct?
-        u32 ImageHandlerDX12::GetNumElements(DepthImageFormat format)
+        u32 ImageHandlerDX12::ToNumElements(DepthImageFormat format)
         {
             switch (format)
             {
