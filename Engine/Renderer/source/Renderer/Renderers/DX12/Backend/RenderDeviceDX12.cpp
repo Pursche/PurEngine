@@ -4,6 +4,7 @@
 #include "ConstantBufferDX12.h"
 
 #include "ImageHandlerDX12.h"
+#include "../../../CommandList.h"
 
 #include <cassert>
 #include <atlbase.h>
@@ -64,31 +65,10 @@ namespace Renderer
             result = _device->CreateCommandQueue(&cqDesc, IID_PPV_ARGS(&_commandQueue)); // create the command queue
             assert(SUCCEEDED(result)); // Failed to create command queue
 
-            // -- Create the Command Allocators -- //
-            for (int i = 0; i < FRAME_BUFFER_COUNT; i++)
-            {
-                result = _device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_commandAllocators[i]));
-                assert(SUCCEEDED(result)); // Failed to create Command Allocator
-
-                result = _device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&_resourceCommandAllocators[i]));
-                assert(SUCCEEDED(result)); // Failed to create Resource Command Allocator
-            }
-
-            // create the command list with the first allocator
-            result = _device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _commandAllocators[0], NULL, IID_PPV_ARGS(&_commandList));
-            assert(SUCCEEDED(result)); // Failed to create Command List
-
-            result = _device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, _resourceCommandAllocators[0], NULL, IID_PPV_ARGS(&_resourceCommandList));
-            assert(SUCCEEDED(result)); // Failed to create Resource Command List
-
-            // command lists are created in the recording state, we will open them before use so we close them now
-            _commandList->Close();
-            _resourceCommandList->Close();
-
             // -- Create a Fence & Fence Event -- //
 
             // create the fences
-            for (int i = 0; i < FRAME_BUFFER_COUNT; i++)
+            for (int i = 0; i < FRAME_INDEX_COUNT; i++)
             {
                 result = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fences[i]));
                 assert(SUCCEEDED(result)); // Failed to create fence
@@ -97,7 +77,7 @@ namespace Renderer
             }
 
             // Create constant buffer descriptor heap
-            for (int i = 0; i < FRAME_BUFFER_COUNT; ++i)
+            for (int i = 0; i < FRAME_INDEX_COUNT; ++i)
             {
                 D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
                 heapDesc.NumDescriptors = 1;
@@ -197,27 +177,6 @@ namespace Renderer
                 // we increment the rtv handle by the rtv descriptor size we got above
                 rtvHandle.Offset(1, swapChain->descriptorSize);
             }
-        }
-
-        ID3D12GraphicsCommandList* RenderDeviceDX12::BeginResourceCommandList()
-        {
-            HRESULT result = _resourceCommandList->Reset(_commandAllocators[_frameIndex], NULL);
-            assert(SUCCEEDED(result)); // Failed to reset command list
-
-            return _resourceCommandList;
-        }
-
-        void RenderDeviceDX12::EndCommandList(ID3D12GraphicsCommandList* commandList)
-        {
-            // Execute command list
-            commandList->Close();
-            ID3D12CommandList* ppCommandLists[] = { commandList };
-            _commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
-
-            // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
-            _fenceValues[_frameIndex]++;
-            HRESULT result = _commandQueue->Signal(_fences[_frameIndex], _fenceValues[_frameIndex]);
-            assert(SUCCEEDED(result)); // Failed to signal fence
         }
 
         Backend::ConstantBufferBackend* RenderDeviceDX12::CreateConstantBufferBackend(size_t size)

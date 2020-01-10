@@ -29,6 +29,13 @@ namespace Renderer
             DXGI_FORMAT GetDXGIFormat(const ImageID id);
             DXGI_FORMAT GetDXGIFormat(const DepthImageID id);
 
+            D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(const ImageID id);
+            D3D12_CPU_DESCRIPTOR_HANDLE GetSRV(const ImageID id);
+            D3D12_CPU_DESCRIPTOR_HANDLE GetUAV(const ImageID id);
+
+            D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(const DepthImageID id);
+            D3D12_CPU_DESCRIPTOR_HANDLE GetSRV(const DepthImageID id);
+
         private:
             struct Image
             {

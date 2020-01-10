@@ -2,7 +2,7 @@
 #include <Core.h>
 #include "../TextureHandle.h"
 
-class RenderDeviceDX12;
+class OldRenderDeviceDX12;
 
 struct IWICImagingFactory;
 struct ID3D12Resource;
@@ -12,7 +12,7 @@ class TextureHandler
 {
 public:
     TextureHandler();
-    TextureHandle LoadTexture(RenderDeviceDX12* device, const std::string& filePath);
+    TextureHandle LoadTexture(OldRenderDeviceDX12* device, const std::string& filePath);
 
 private:
     struct LoadedTexture
@@ -24,7 +24,7 @@ private:
     };
 
     i32 LoadTextureFromFile(u8** imageData, D3D12_RESOURCE_DESC* resourceDescription, const std::string& filename, int& bytesPerRow);
-    void CreateTexture(RenderDeviceDX12* device, LoadedTexture& texture, u8* imageData, int size, int bytesPerRow);
+    void CreateTexture(OldRenderDeviceDX12* device, LoadedTexture& texture, u8* imageData, int size, int bytesPerRow);
 private:
 
     ID3D12Resource* _textureBuffer;

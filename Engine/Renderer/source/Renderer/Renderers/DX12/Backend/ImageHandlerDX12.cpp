@@ -238,6 +238,36 @@ namespace Renderer
             return ToDXGIFormat(_depthImages[static_cast<type>(id)].desc.format);
         }
 
+        D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetRTV(const ImageID id)
+        {
+            using type = type_safe::underlying_type<ImageID>;
+            return _images[static_cast<type>(id)].rtv;
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetSRV(const ImageID id)
+        {
+            using type = type_safe::underlying_type<ImageID>;
+            return _images[static_cast<type>(id)].srv;
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetUAV(const ImageID id)
+        {
+            using type = type_safe::underlying_type<ImageID>;
+            return _images[static_cast<type>(id)].uav;
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetDSV(const DepthImageID id)
+        {
+            using type = type_safe::underlying_type<DepthImageID>;
+            return _depthImages[static_cast<type>(id)].dsv;
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetSRV(const DepthImageID id)
+        {
+            using type = type_safe::underlying_type<DepthImageID>;
+            return _depthImages[static_cast<type>(id)].srv;
+        }
+
         DXGI_FORMAT ImageHandlerDX12::ToDXGIFormat(ImageFormat format)
         {
             switch (format)

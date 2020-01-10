@@ -357,4 +357,11 @@ namespace Renderer
     private:
         char _name[INPUT_LAYOUT_NAME_MAX_LENGTH] = {};
     };
+
+    enum DepthClearFlags
+    {
+        DEPTH_CLEAR_DEPTH,
+        DEPTH_CLEAR_STENCIL,
+        DEPTH_CLEAR_BOTH
+    };
 }

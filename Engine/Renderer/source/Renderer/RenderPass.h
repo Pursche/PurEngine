@@ -28,7 +28,8 @@ namespace Renderer
         typedef std::function<void(PassData&, CommandList&)> ExecuteFunction;
 
     private:
-        RenderPass(std::string name, SetupFunction onSetup, ExecuteFunction onExecute)
+        RenderPass(std::string name, SetupFunction onSetup, ExecuteFunction onExecute, Renderer* renderer)
+            : _commandList(renderer)
         {
             _name = name;
             _onSetup = onSetup;

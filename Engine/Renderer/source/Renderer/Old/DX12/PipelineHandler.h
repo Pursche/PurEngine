@@ -4,7 +4,7 @@
 #include "../PipelineHandle.h"
 #include "../ShaderHandle.h"
 
-class RenderDeviceDX12;
+class OldRenderDeviceDX12;
 class ShaderHandler;
 
 struct ID3D12PipelineState;
@@ -32,7 +32,7 @@ public:
     PipelineHandler(ShaderHandler* shaderHandler) { _shaderHandler = shaderHandler; }
     ~PipelineHandler();
 
-    bool CreatePipeline(RenderDeviceDX12* device, PipelineDesc& desc, PipelineHandle& handle);
+    bool CreatePipeline(OldRenderDeviceDX12* device, PipelineDesc& desc, PipelineHandle& handle);
 
     ID3D12PipelineState* GetPSO(PipelineHandle& handle);
     ID3D12RootSignature* GetRootSignature(PipelineHandle& handle);
@@ -42,7 +42,7 @@ private:
         PipelineHandle handle;
         ID3D12PipelineState* pso;
         ID3D12RootSignature* rootSignature;
-        RenderDeviceDX12* device;
+        OldRenderDeviceDX12* device;
     };
 
     typedef std::vector<char> ShaderBinary;

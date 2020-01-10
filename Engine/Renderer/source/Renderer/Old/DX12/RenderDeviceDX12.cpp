@@ -8,14 +8,14 @@
 #include <cassert>
 #include <atlbase.h>
 
-RenderDeviceDX12::RenderDeviceDX12()
+OldRenderDeviceDX12::OldRenderDeviceDX12()
     : RenderDevice()
     , _frameIndex(0)
 {
 
 }
 
-bool RenderDeviceDX12::Init(Window* window, int width, int height)
+bool OldRenderDeviceDX12::Init(Window* window, int width, int height)
 {
     UINT dxgiFactoryFlags = 0;
 
@@ -261,7 +261,7 @@ bool RenderDeviceDX12::Init(Window* window, int width, int height)
     return true;
 }
 
-void RenderDeviceDX12::Render()
+void OldRenderDeviceDX12::Render()
 {
     HRESULT result;
 
@@ -284,7 +284,7 @@ void RenderDeviceDX12::Render()
     assert(SUCCEEDED(result));
 }
 
-void RenderDeviceDX12::Cleanup()
+void OldRenderDeviceDX12::Cleanup()
 {
     // wait for the gpu to finish all frames
     for (int i = 0; i < frameBufferCount; ++i)
@@ -316,7 +316,7 @@ void RenderDeviceDX12::Cleanup()
     };
 }
 
-void RenderDeviceDX12::RegisterModel(Model* model)
+void OldRenderDeviceDX12::RegisterModel(Model* model)
 {
     if (!model->IsBuffersCreated())
     {
@@ -326,7 +326,7 @@ void RenderDeviceDX12::RegisterModel(Model* model)
     _modelsToRender.push_back(model);
 }
 
-void RenderDeviceDX12::InitModel(Model* model)
+void OldRenderDeviceDX12::InitModel(Model* model)
 {
     HRESULT result;
     result = _copyCommandList->Reset(_commandAllocator[_frameIndex], NULL);
@@ -474,7 +474,7 @@ void RenderDeviceDX12::InitModel(Model* model)
     model->SetBuffersCreated();
 }
 
-void RenderDeviceDX12::EnableShaderBasedValidation()
+void OldRenderDeviceDX12::EnableShaderBasedValidation()
 {
     HRESULT result;
 
@@ -487,7 +487,7 @@ void RenderDeviceDX12::EnableShaderBasedValidation()
     spDebugController1->SetEnableGPUBasedValidation(true);
 }
 
-void RenderDeviceDX12::WaitForFrame()
+void OldRenderDeviceDX12::WaitForFrame()
 {
     HRESULT result;
 
@@ -511,7 +511,7 @@ void RenderDeviceDX12::WaitForFrame()
     _fenceValue[_frameIndex]++;
 }
 
-void RenderDeviceDX12::UpdatePipeline()
+void OldRenderDeviceDX12::UpdatePipeline()
 {
     HRESULT result;
 
@@ -587,7 +587,7 @@ void RenderDeviceDX12::UpdatePipeline()
     _modelsToRender.clear();
 }
 
-void RenderDeviceDX12::UpdateViewCB()
+void OldRenderDeviceDX12::UpdateViewCB()
 {
     UINT width, height;
     _swapChain->GetSourceSize(&width, &height);

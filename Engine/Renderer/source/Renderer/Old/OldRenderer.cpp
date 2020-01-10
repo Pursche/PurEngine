@@ -15,7 +15,7 @@ OldRenderer::~OldRenderer()
 
 bool OldRenderer::Init(Window* window, int width, int height)
 {
-    _device = new RenderDeviceDX12();
+    _device = new OldRenderDeviceDX12();
 
     bool result = _device->Init(window, width, height);
     if (!result)

@@ -176,14 +176,15 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                 // Set pipeline
                 Renderer::GraphicsPipelineID pipeline = renderer->CreatePipeline(pipelineDesc); // This will compile the pipeline and return the ID, or return ID of cached pipeline
-                commandList.SetPipeline(pipeline);
+                Renderer::Commands::SetGraphicsPipeline* pipelineCommand = commandList.AddCommand<Renderer::Commands::SetGraphicsPipeline>(); // TODO(immediately): Abstract this into something more DX11-like
+                pipelineCommand->pipeline = pipeline;
 
                 // Render main layer
                 Renderer::RenderLayer mainLayer = renderer->GetRenderLayer(MainRenderLayer);
 
                 for (auto const& model : mainLayer.GetModels())
                 {
-                    auto const& id = Renderer::ModelID(model.first);
+                    auto const& modelID = Renderer::ModelID(model.first);
                     auto const& instances = model.second;
 
                     for (auto const& instance : instances)
@@ -193,9 +194,12 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                         modelConstantBuffer.Apply(frameIndex);
 
-                        commandList.Draw(id, instance);
+                        Renderer::Commands::Draw* drawCommand = commandList.AddCommand<Renderer::Commands::Draw>(); // TODO(immediately): Abstract this into something more DX11-like
+                        drawCommand->model = modelID;
                     }
                 }
+
+                commandList.Execute();
             });
         }
 

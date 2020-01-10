@@ -17,7 +17,7 @@ namespace Renderer
         template <typename PassData>
         void AddPass(std::string name, std::function<bool(PassData&, RenderGraphBuilder&)> onSetup, std::function<void(PassData&, CommandList&)> onExecute)
         {
-            IRenderPass* pass = new RenderPass<PassData>(name, onSetup, onExecute);
+            IRenderPass* pass = new RenderPass<PassData>(name, onSetup, onExecute, _renderGraphBuilder->_renderer);
             _passes.push_back(pass);
         }
 

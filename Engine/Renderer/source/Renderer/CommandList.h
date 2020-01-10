@@ -1,31 +1,62 @@
 #pragma once
 #include <Core.h>
-#include "Commands/SetPipelineCommand.h"
-#include "Commands/DrawCommand.h"
-#include "Commands/ClearCommand.h"
-#include "Commands/PushMarkerCommand.h"
-#include "Commands/PopMarkerCommand.h"
+#include "BackendDispatch.h"
+#include "Descriptors/CommandListDesc.h"
 #include <vector>
+
+// Commands
+#include "Commands/Clear.h"
+#include "Commands/Draw.h"
+#include "Commands/PopMarker.h"
+#include "Commands/PushMarker.h"
+#include "Commands/SetPipeline.h"
 
 namespace Renderer
 {
     class CommandList
     {
     public:
-        void SetPipeline(GraphicsPipelineID pipelineID);
-        void SetPipeline(ComputePipelineID pipelineID);
+        CommandList(Renderer* renderer)
+            : _renderer(renderer)
+        {
 
-        void Draw(const ModelID modelID, const InstanceData& instance);
-        void Clear(ImageID imageID, Vector3 color);
-        void Clear(DepthImageID imageID, Vector3 color);
+        }
 
-        void PushMarker(std::string marker);
-        void PopMarker();
+        // Execute
+        void Execute();
+
+        template<typename Command>
+        Command* AddCommand()
+        {
+            Command* command = AllocateCommand<Command>();
+
+            AddFunction(Command::DISPATCH_FUNCTION);
+            AddData(command);
+
+            return command;
+        }
 
     private:
+        template<typename Command>
+        Command* AllocateCommand()
+        {
+            return new Command(); // TODO: Frame allocator
+        }
+
+        void AddFunction(BackendDispatchFunction function)
+        {
+            _functions.push_back(function);
+        }
+
+        void AddData(void* data)
+        {
+            _data.push_back(data);
+        }
 
     private:
-        std::vector<Commands::ICommand*> _commands; // TODO: Figure out a better way to store these
+        Renderer* _renderer;
+        std::vector<BackendDispatchFunction> _functions;
+        std::vector<void*> _data;
     };
 
     class ScopedMarker
@@ -34,11 +65,12 @@ namespace Renderer
         ScopedMarker(CommandList& commandList, std::string marker)
             : _commandList(commandList)
         {
-            _commandList.PushMarker(marker);
+            Commands::PushMarker* command = _commandList.AddCommand<Commands::PushMarker>();
+            command->marker = marker;
         }
         ~ScopedMarker()
         {
-            _commandList.PopMarker();
+            _commandList.AddCommand<Commands::PopMarker>();
         }
 
     private:

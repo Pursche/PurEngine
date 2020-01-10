@@ -13,11 +13,12 @@ project (RENDERER_NAME)
     dependson { CORE_NAME }
 
     files { "source/**.h", "source/**.cpp" }
-    links { CAPNPROTO_NAME, TYPES_NAME, "d3dcompiler", "dxguid", "d3d12", "dxgi" }
+    links { CAPNPROTO_NAME, TYPES_NAME, "d3dcompiler", "dxguid", "d3d12", "dxgi", "WinPixEventRuntime" }
     linkoptions { "-IGNORE:4006" }
     disablewarnings { "4238" }
 
-    includedirs { "../%{CORE_NAME}/source", "../%{TYPES_NAME}/source", "../../External/%{CAPNPROTO_NAME}/src" }
+    libdirs { "lib" }
+    includedirs { "../%{CORE_NAME}/source", "../%{TYPES_NAME}/source", "../../External/%{CAPNPROTO_NAME}/src", "include" }
 
     defines { "_CRT_SECURE_NO_WARNINGS", "NOMINMAX" }
 
@@ -40,3 +41,5 @@ project (RENDERER_NAME)
         symbols "On"
         targetsuffix ("_Final" .. _AMD_VS_SUFFIX)
         optimize "On"
+
+    postbuildcommands { "copy lib/WinPixEventRuntime.dll ../../bin/" }

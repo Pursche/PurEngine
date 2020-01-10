@@ -10,6 +10,8 @@ class Window;
 
 namespace Renderer
 {
+    class CommandList;
+
     namespace Backend
     {
         struct ConstantBufferBackend;
@@ -20,10 +22,10 @@ namespace Renderer
             void Init();
             void InitWindow(Window*);
 
-            ID3D12GraphicsCommandList* BeginResourceCommandList();
-            void EndCommandList(ID3D12GraphicsCommandList* commandList);
-
             ConstantBufferBackend* CreateConstantBufferBackend(size_t size);
+
+            u32 GetFrameIndex() { return _frameIndex; }
+            void EndFrame() { _frameIndex = (_frameIndex + 1) % FRAME_INDEX_COUNT; }
 
         private:
             void InitOnce();
@@ -33,24 +35,22 @@ namespace Renderer
 
             ID3D12CommandQueue* _commandQueue;
 
-            static const u32 FRAME_BUFFER_COUNT = 3; // TODO: Don't hardcode this
+            static const u32 FRAME_INDEX_COUNT = 2;
             u32 _frameIndex;
-
-            ID3D12CommandAllocator* _commandAllocators[FRAME_BUFFER_COUNT];
-            ID3D12CommandAllocator* _resourceCommandAllocators[FRAME_BUFFER_COUNT];
 
             ID3D12GraphicsCommandList* _commandList;
             ID3D12GraphicsCommandList* _resourceCommandList;
 
-            ID3D12Fence* _fences[FRAME_BUFFER_COUNT];
-            u64 _fenceValues[FRAME_BUFFER_COUNT];
+            ID3D12Fence* _fences[FRAME_INDEX_COUNT];
+            u64 _fenceValues[FRAME_INDEX_COUNT];
 
-            ID3D12DescriptorHeap* _mainDescriptorHeap[FRAME_BUFFER_COUNT];
+            ID3D12DescriptorHeap* _mainDescriptorHeap[FRAME_INDEX_COUNT];
 
             // We friend class handlers that need access to private variables they'll need to initialize stuff
             friend class ImageHandlerDX12;
             friend class ModelHandlerDX12;
             friend class PipelineHandlerDX12;
+            friend class CommandListHandlerDX12;
         };
     }
 }

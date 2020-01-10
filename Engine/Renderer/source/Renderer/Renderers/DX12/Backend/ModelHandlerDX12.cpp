@@ -3,6 +3,7 @@
 #include "d3dx12.h"
 #include <Utils/StringUtils.h>
 #include <cassert>
+#include "CommandListHandlerDX12.h"
 
 #pragma warning(push)
 #pragma warning(disable: 4100 4244 4267 4127 4245 4521) // CapNProto doesn't give a fuck about warnings :(
@@ -25,7 +26,7 @@ namespace Renderer
 
         }
 
-        ModelID ModelHandlerDX12::LoadModel(RenderDeviceDX12* device, const ModelDesc& desc)
+        ModelID ModelHandlerDX12::LoadModel(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, const ModelDesc& desc)
         {
             size_t handle = _models.size();
             assert(handle < ModelID::MaxValue());
@@ -36,11 +37,32 @@ namespace Renderer
 
             TempModelData modelData;
             LoadFromFile(desc, modelData);
-            InitModel(device, model, modelData);
+            InitModel(device, commandListHandler, model, modelData);
 
             _models.push_back(model);
 
             return ModelID(static_cast<type>(handle));
+        }
+
+        D3D12_VERTEX_BUFFER_VIEW* ModelHandlerDX12::GetVertexBufferView(ModelID id)
+        {
+            using type = type_safe::underlying_type<ModelID>;
+
+            return _models[static_cast<type>(id)].vertexBufferView;
+        }
+
+        D3D12_INDEX_BUFFER_VIEW* ModelHandlerDX12::GetIndexBufferView(ModelID id)
+        {
+            using type = type_safe::underlying_type<ModelID>;
+
+            return _models[static_cast<type>(id)].indexBufferView;
+        }
+
+        u32 ModelHandlerDX12::GetNumIndices(ModelID id)
+        {
+            using type = type_safe::underlying_type<ModelID>;
+
+            return _models[static_cast<type>(id)].numIndices;
         }
 
         void ModelHandlerDX12::LoadFromFile(const ModelDesc& desc, TempModelData& data)
@@ -70,10 +92,12 @@ namespace Renderer
             CloseHandle(hFile);
         }
 
-        void ModelHandlerDX12::InitModel(RenderDeviceDX12* device, Model& model, TempModelData& data)
+        void ModelHandlerDX12::InitModel(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, Model& model, TempModelData& data)
         {
+            CommandListID commandListID = commandListHandler->BeginCommandList(device);
+            ID3D12GraphicsCommandList* commandList = commandListHandler->GetCommandList(commandListID);
+
             HRESULT result;
-            ID3D12GraphicsCommandList* commandList = device->BeginResourceCommandList();
 
             // -- VERTEX BUFFER --
             size_t vertexBufferSize = data.vertices.size() * sizeof(Vertex);
@@ -174,7 +198,10 @@ namespace Renderer
             model.indexBufferView->Format = DXGI_FORMAT_R32_UINT;
             model.indexBufferView->SizeInBytes = (UINT)indexBufferSize;
 
-            device->EndCommandList(commandList);
+            // Set number of indices
+            model.numIndices = static_cast<u32>(data.indices.size());
+
+            commandListHandler->EndCommandList(device, commandListID);
         }
 
     }

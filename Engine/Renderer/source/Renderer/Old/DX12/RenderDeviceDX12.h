@@ -10,10 +10,10 @@ struct IDXGISwapChain3;
 class ShaderHandler;
 class PipelineHandler;
 
-class RenderDeviceDX12 : public RenderDevice
+class OldRenderDeviceDX12 : public RenderDevice
 {
 public:
-    RenderDeviceDX12();
+    OldRenderDeviceDX12();
 
     bool Init(Window* window, int width, int height) override;
     void Render() override;

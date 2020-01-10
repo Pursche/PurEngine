@@ -109,7 +109,7 @@ int GetDXGIFormatBitsPerPixel(DXGI_FORMAT& dxgiFormat)
     return 0;
 }
 
-TextureHandle TextureHandler::LoadTexture(RenderDeviceDX12* device, const std::string& filePath)
+TextureHandle TextureHandler::LoadTexture(OldRenderDeviceDX12* device, const std::string& filePath)
 {
     LoadedTexture texture;
     texture.textureDesc = new D3D12_RESOURCE_DESC();
@@ -224,7 +224,7 @@ i32 TextureHandler::LoadTextureFromFile(u8** imageData, D3D12_RESOURCE_DESC* res
     return imageSize;
 }
 
-void TextureHandler::CreateTexture(RenderDeviceDX12* device, LoadedTexture& texture, u8* imageData, int /*size*/, int bytesPerRow)
+void TextureHandler::CreateTexture(OldRenderDeviceDX12* device, LoadedTexture& texture, u8* imageData, int /*size*/, int bytesPerRow)
 {
     HRESULT result;
     // create a default heap where the upload heap will copy its contents into (contents being the texture)

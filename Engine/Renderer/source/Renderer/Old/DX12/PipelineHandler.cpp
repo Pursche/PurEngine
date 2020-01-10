@@ -14,7 +14,7 @@ PipelineHandler::~PipelineHandler()
     }
 }
 
-bool PipelineHandler::CreatePipeline(RenderDeviceDX12* device, PipelineDesc& desc, PipelineHandle& handle)
+bool PipelineHandler::CreatePipeline(OldRenderDeviceDX12* device, PipelineDesc& desc, PipelineHandle& handle)
 {
     handle = PipelineHandle::Invalid();
     HRESULT result;
