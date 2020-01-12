@@ -4,9 +4,6 @@
 #include <Utils/Timer.h>
 #include <Window/Window.h>
 
-// Old renderer
-#include <Renderer/Old/OldRenderer.h>
-
 // Rendergraph
 #include <Renderer/Renderers/DX12/RendererDX12.h>
 
@@ -31,10 +28,11 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     Renderer::Renderer* renderer = new Renderer::RendererDX12();
     renderer->InitWindow(&mainWindow);
 
-    Camera camera(Vector3(0,0,-5));
+    Camera camera(Vector3(0,0,-10));
 
     // Create permanent Resources
     Renderer::ImageDesc mainColorDesc;
+    mainColorDesc.debugName = "MainColor";
     mainColorDesc.dimensions = Vector2i(1280, 720);
     mainColorDesc.format = Renderer::IMAGE_FORMAT_R16G16B16A16_FLOAT;
     mainColorDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
@@ -42,13 +40,14 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     Renderer::ImageID mainColor = renderer->CreateImage(mainColorDesc);
 
     Renderer::DepthImageDesc mainDepthDesc;
+    mainDepthDesc.debugName = "MainDepth";
     mainDepthDesc.dimensions = Vector2i(1280, 720);
     mainDepthDesc.format = Renderer::DEPTH_IMAGE_FORMAT_D32_FLOAT;
     mainDepthDesc.sampleCount = Renderer::SAMPLE_COUNT_1;
 
     Renderer::DepthImageID mainDepth = renderer->CreateDepthImage(mainDepthDesc);
 
-    Renderer::RenderLayer mainLayer = renderer->GetRenderLayer(MainRenderLayer);
+    Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MainRenderLayer);
 
     Renderer::ModelDesc modelDesc;
     modelDesc.path = "Data/models/cube.model";
@@ -129,7 +128,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         mainLayer.RegisterModel(cubeModel, cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
         
         // Depth Prepass
-        {
+        /*{
             struct DepthPrepassData
             {
                 Renderer::RenderPassMutableResource depth;
@@ -145,7 +144,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
             [&](DepthPrepassData& data, Renderer::CommandList& commandList) // Execute
             {
                 Renderer::GraphicsPipelineDesc pipelineDesc;
-                pipelineDesc.renderGraph = &renderGraph;
+                renderGraph.InitializePipelineDesc(pipelineDesc);
 
                 // Shaders
                 Renderer::VertexShaderDesc vertexShaderDesc;
@@ -170,6 +169,12 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                 // Depth state
                 pipelineDesc.states.depthStencilState.depthWriteEnable = true;
+                pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_GREATER;
+
+                pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_NONE;
+                //pipelineDesc.states.rasterizerState.frontFaceMode = Renderer::FrontFaceState::FRONT_FACE_STATE_CLOCKWISE;
+
+                // Textures
 
                 // Render targets
                 pipelineDesc.depthStencil = data.depth;
@@ -179,8 +184,28 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                 Renderer::Commands::SetGraphicsPipeline* pipelineCommand = commandList.AddCommand<Renderer::Commands::SetGraphicsPipeline>(); // TODO(immediately): Abstract this into something more DX11-like
                 pipelineCommand->pipeline = pipeline;
 
+                // Set viewport and scissor rect
+                Renderer::Commands::SetScissorRect* scissorRectCommand = commandList.AddCommand<Renderer::Commands::SetScissorRect>(); // TODO(immediately): Abstract this into something more DX11-like
+                scissorRectCommand->scissorRect.left = 0;
+                scissorRectCommand->scissorRect.right = width;
+                scissorRectCommand->scissorRect.top = 0;
+                scissorRectCommand->scissorRect.bottom = height;
+                
+                Renderer::Commands::SetViewport* viewportCommand = commandList.AddCommand<Renderer::Commands::SetViewport>(); // TODO(immediately): Abstract this into something more DX11-like
+                viewportCommand->viewport.topLeftX = 0;
+                viewportCommand->viewport.topLeftY = 0;
+                viewportCommand->viewport.width = static_cast<f32>(width);
+                viewportCommand->viewport.height = static_cast<f32>(height);
+                viewportCommand->viewport.minDepth = 0.0f;
+                viewportCommand->viewport.maxDepth = 1.0f;
+
+                // Set view constant buffer
+                Renderer::Commands::SetConstantBuffer* viewConstantBufferCommand = commandList.AddCommand<Renderer::Commands::SetConstantBuffer>(); // TODO(immediately): Abstract this into something more DX11-like
+                viewConstantBufferCommand->slot = 0;
+                viewConstantBufferCommand->gpuResource = viewConstantBuffer.GetGPUResource(frameIndex);
+
                 // Render main layer
-                Renderer::RenderLayer mainLayer = renderer->GetRenderLayer(MainRenderLayer);
+                Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MainRenderLayer);
 
                 for (auto const& model : mainLayer.GetModels())
                 {
@@ -194,6 +219,11 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                         modelConstantBuffer.Apply(frameIndex);
 
+                        // Set model constant buffer
+                        Renderer::Commands::SetConstantBuffer* modelConstantBufferCommand = commandList.AddCommand<Renderer::Commands::SetConstantBuffer>(); // TODO(immediately): Abstract this into something more DX11-like
+                        modelConstantBufferCommand->slot = 1;
+                        modelConstantBufferCommand->gpuResource = modelConstantBuffer.GetGPUResource(frameIndex);
+
                         Renderer::Commands::Draw* drawCommand = commandList.AddCommand<Renderer::Commands::Draw>(); // TODO(immediately): Abstract this into something more DX11-like
                         drawCommand->model = modelID;
                     }
@@ -201,49 +231,131 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                 commandList.Execute();
             });
-        }
+        }*/
 
         // Main Pass
         {
-            /*Renderer::VertexShaderDesc vertexShaderDesc;
-            vertexShaderDesc.path = "shaders/main.vs.hlsl";
+            struct MainPassData
+            {
+                Renderer::RenderPassMutableResource mainColor;
+            };
 
-            Renderer::PixelShaderDesc pixelShaderDesc;
-            pixelShaderDesc.path = "shaders/main.ps.hlsl";
+            renderGraph.AddPass<MainPassData>("Main Pass",
+                [&](MainPassData& data, Renderer::RenderGraphBuilder& builder) // Setup
+                {
+                    data.mainColor = builder.Write(mainColor, Renderer::RenderGraphBuilder::WriteMode::WRITE_MODE_RENDERTARGET, Renderer::RenderGraphBuilder::LoadMode::LOAD_MODE_CLEAR);
 
-            Renderer::GraphicsPipelineDesc pipelineDesc;
-            // pipelineDesc.rasterizerState and pipelineDesc.blendState is available as well
-            pipelineDesc.depthStencilState.depthWriteEnable = false;
-            pipelineDesc.depthStencilState.depthFunc = Renderer::COMPARISON_FUNC_EQUAL; // Only pass depth test if depth is equal
-            pipelineDesc.vertexShader = renderer.LoadShader(vertexShaderDesc);
-            pipelineDesc.pixelShader = renderer.LoadShader(pixelShaderDesc);
+                    return true; // Return true from setup to enable this pass, return false to disable it
+                },
+                [&](MainPassData& data, Renderer::CommandList& commandList) // Execute
+                {
+                    Renderer::GraphicsPipelineDesc pipelineDesc;
+                    renderGraph.InitializePipelineDesc(pipelineDesc);
 
-            pipelineDesc.depthStencil = mainDepth;
-            pipelineDesc.renderTargets[0].image = mainColor;
-            // pipelineDesc.renderTargets[0].blendState is available as well
+                    // Shaders
+                    Renderer::VertexShaderDesc vertexShaderDesc;
+                    vertexShaderDesc.path = "Data/shaders/test.vs.hlsl.cso";
+                    pipelineDesc.states.vertexShader = renderer->LoadShader(vertexShaderDesc);
 
-            Renderer::GraphicsPipelineID pipeline = renderer.CreatePipeline(pipelineDesc);*/
+                    Renderer::PixelShaderDesc pixelShaderDesc;
+                    pixelShaderDesc.path = "Data/shaders/test.ps.hlsl.cso";
+                    pipelineDesc.states.pixelShader = renderer->LoadShader(pixelShaderDesc);
 
-            //struct MainPassData
-            //{
-            //    Renderer::RenderPassResource depth;
-            //    Renderer::RenderPassMutableResource color;
-            //};
+                    // Constant buffers  TODO: Improve on this, if I set state 0 and 3 it won't work etc...
+                    pipelineDesc.states.constantBufferStates[0].enabled = true; // ViewCB
+                    pipelineDesc.states.constantBufferStates[0].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
+                    pipelineDesc.states.constantBufferStates[1].enabled = true; // ModelCB
+                    pipelineDesc.states.constantBufferStates[1].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
 
-            //renderGraph.AddPass<MainPassData>("Main Pass",
-            //[&](MainPassData& data, Renderer::RenderPassBuilder& builder) // OnSetup
-            //{ 
-            //    data.depth = builder.Read(mainDepth, Renderer::RenderPassBuilder::ShaderStage::SHADER_STAGE_PIXEL);
-            //    data.color = builder.Write(mainColor, Renderer::RenderPassBuilder::WriteMode::WRITE_MODE_RENDERTARGET, Renderer::RenderPassBuilder::LoadMode::LOAD_MODE_CLEAR);
-            //},
-            //[=](MainPassData& /*data*/, Renderer::CommandList& commandList) // OnExecute
-            //{ 
-            //    commandList.AddDrawCommand(cubeModel);
-            //});
+                    // Input layouts TODO: Improve on this, if I set state 0 and 3 it won't work etc...
+                    pipelineDesc.states.inputLayouts[0].enabled = true;
+                    pipelineDesc.states.inputLayouts[0].SetName("POSITION");
+                    pipelineDesc.states.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
+                    pipelineDesc.states.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
+
+                    // Depth state
+                    //pipelineDesc.states.depthStencilState.depthWriteEnable = false;
+                    //pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_GREATER;
+
+                    pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_NONE;
+                    //pipelineDesc.states.rasterizerState.frontFaceMode = Renderer::FrontFaceState::FRONT_FACE_STATE_CLOCKWISE;
+
+                    // Textures
+
+                    // Render targets
+                    pipelineDesc.renderTargets[0] = data.mainColor;
+
+                    // Set pipeline
+                    Renderer::GraphicsPipelineID pipeline = renderer->CreatePipeline(pipelineDesc); // This will compile the pipeline and return the ID, or return ID of cached pipeline
+                    Renderer::Commands::SetGraphicsPipeline* pipelineCommand = commandList.AddCommand<Renderer::Commands::SetGraphicsPipeline>(); // TODO(immediately): Abstract this into something more DX11-like
+                    pipelineCommand->pipeline = pipeline;
+
+                    // Set viewport and scissor rect
+                    Renderer::Commands::SetScissorRect* scissorRectCommand = commandList.AddCommand<Renderer::Commands::SetScissorRect>(); // TODO(immediately): Abstract this into something more DX11-like
+                    scissorRectCommand->scissorRect.left = 0;
+                    scissorRectCommand->scissorRect.right = width;
+                    scissorRectCommand->scissorRect.top = 0;
+                    scissorRectCommand->scissorRect.bottom = height;
+
+                    Renderer::Commands::SetViewport* viewportCommand = commandList.AddCommand<Renderer::Commands::SetViewport>(); // TODO(immediately): Abstract this into something more DX11-like
+                    viewportCommand->viewport.topLeftX = 0;
+                    viewportCommand->viewport.topLeftY = 0;
+                    viewportCommand->viewport.width = static_cast<f32>(width);
+                    viewportCommand->viewport.height = static_cast<f32>(height);
+                    viewportCommand->viewport.minDepth = 0.0f;
+                    viewportCommand->viewport.maxDepth = 1.0f;
+
+                    // Set view constant buffer
+                    Renderer::Commands::SetConstantBuffer* viewConstantBufferCommand = commandList.AddCommand<Renderer::Commands::SetConstantBuffer>(); // TODO(immediately): Abstract this into something more DX11-like
+                    viewConstantBufferCommand->slot = 0;
+                    viewConstantBufferCommand->gpuResource = viewConstantBuffer.GetGPUResource(frameIndex);
+
+                    // Clear mainColor TODO: This should be handled by the parameter in Setup, and it should definitely not act on ImageID and DepthImageID
+                    Renderer::Commands::ClearImage* clearMainColorCommand = commandList.AddCommand<Renderer::Commands::ClearImage>(); // TODO(immediately): Abstract this into something more DX11-like                                                                                                          
+                    clearMainColorCommand->image = mainColor; // TODO: I really don't like this
+                    clearMainColorCommand->color = Vector4(1, 0, 0, 1);
+
+                    // Render main layer
+                    Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MainRenderLayer);
+
+                    for (auto const& model : mainLayer.GetModels())
+                    {
+                        auto const& modelID = Renderer::ModelID(model.first);
+                        auto const& instances = model.second;
+
+                        for (auto const& instance : instances)
+                        {
+                            modelConstantBuffer.resource.modelMatrix = instance.modelMatrix;
+                            modelConstantBuffer.resource.colorMultiplier = instance.colorMultiplier;
+
+                            modelConstantBuffer.Apply(frameIndex);
+
+                            // Set model constant buffer
+                            Renderer::Commands::SetConstantBuffer* modelConstantBufferCommand = commandList.AddCommand<Renderer::Commands::SetConstantBuffer>(); // TODO(immediately): Abstract this into something more DX11-like
+                            modelConstantBufferCommand->slot = 1;
+                            modelConstantBufferCommand->gpuResource = modelConstantBuffer.GetGPUResource(frameIndex);
+
+                            Renderer::Commands::Draw* drawCommand = commandList.AddCommand<Renderer::Commands::Draw>(); // TODO(immediately): Abstract this into something more DX11-like
+                            drawCommand->model = modelID;
+                        }
+                    }
+
+                    Renderer::Commands::PresentImage* presentCommand = commandList.AddCommand<Renderer::Commands::PresentImage>(); // TODO(immediately): Abstract this into something more DX11-like
+                    presentCommand->window = &mainWindow;
+                    presentCommand->image = mainColor;
+
+                //commandList.Execute();
+            });
         }
 
         renderGraph.Setup();
         renderGraph.Execute();
+
+        //renderer->Present(&mainWindow, mainDepth);
+        //renderer->Present(&mainWindow, mainColor);
+
+        // Reset layers
+        mainLayer.Reset();
 
         frameIndex = !frameIndex; // Flip between 0 and 1
     }

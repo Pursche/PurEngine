@@ -15,12 +15,13 @@ namespace Renderer
     namespace Backend
     {
         struct ConstantBufferBackend;
+        class ShaderHandlerDX12;
 
         class RenderDeviceDX12
         {
         public:
             void Init();
-            void InitWindow(Window*);
+            void InitWindow(ShaderHandlerDX12* shaderHandler, Window*);
 
             ConstantBufferBackend* CreateConstantBufferBackend(size_t size);
 
@@ -37,6 +38,7 @@ namespace Renderer
 
             static const u32 FRAME_INDEX_COUNT = 2;
             u32 _frameIndex;
+            void* _fenceEvent;
 
             ID3D12GraphicsCommandList* _commandList;
             ID3D12GraphicsCommandList* _resourceCommandList;

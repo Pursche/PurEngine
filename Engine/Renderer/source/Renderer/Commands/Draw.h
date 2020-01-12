@@ -1,6 +1,5 @@
 #pragma once
 #include <Core.h>
-#include "../BackendDispatch.h"
 #include "../Descriptors/ModelDesc.h"
 #include "../InstanceData.h"
 
@@ -12,9 +11,7 @@ namespace Renderer
         {
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
-            ModelID model;
+            ModelID model = ModelID::Invalid();
         };
-
-        const BackendDispatchFunction Draw::DISPATCH_FUNCTION = &BackendDispatch::Draw;
     }
 }

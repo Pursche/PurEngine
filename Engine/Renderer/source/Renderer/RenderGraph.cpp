@@ -1,6 +1,8 @@
 #include "RenderGraph.h"
 #include "RenderGraphBuilder.h"
 
+#include "Renderer.h"
+
 namespace Renderer
 {
     bool RenderGraph::Init(RenderGraphDesc& desc)
@@ -34,11 +36,33 @@ namespace Renderer
     void RenderGraph::Execute()
     {
         // TODO: Parallel_for this
+        CommandList commandList(_renderer);
         for (IRenderPass* pass : _executingPasses)
         {
-            pass->Execute();
+            pass->Execute(commandList);
         }
+        commandList.Execute();
 
         // TODO: Merge all renderpass commandlists into one and execute
+    }
+
+    void RenderGraph::InitializePipelineDesc(GraphicsPipelineDesc& desc)
+    {
+        desc.ResourceToImageID = [&](RenderPassResource resource) 
+        {
+            return _renderGraphBuilder->GetImage(resource);
+        };
+        desc.ResourceToDepthImageID = [&](RenderPassResource resource) 
+        {
+            return _renderGraphBuilder->GetDepthImage(resource);
+        };
+        desc.MutableResourceToImageID = [&](RenderPassMutableResource resource) 
+        {
+            return _renderGraphBuilder->GetImage(resource);
+        };
+        desc.MutableResourceToDepthImageID = [&](RenderPassMutableResource resource) 
+        {
+            return _renderGraphBuilder->GetDepthImage(resource);
+        };
     }
 }

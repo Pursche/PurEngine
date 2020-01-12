@@ -1,4 +1,5 @@
 #pragma once
+#include <Core.h>
 #include "../../../ConstantBuffer.h"
 #include "d3dx12.h"
 
@@ -19,6 +20,11 @@ namespace Renderer
             void Apply(u32 frameIndex, void* data, size_t size) override
             {
                 memcpy(gpuAddress[frameIndex], data, size);
+            }
+
+            void* GetGPUResource(u32 frameIndex) override
+            {
+                return uploadHeap[frameIndex];
             }
         };
     }

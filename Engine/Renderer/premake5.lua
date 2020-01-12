@@ -42,4 +42,12 @@ project (RENDERER_NAME)
         targetsuffix ("_Final" .. _AMD_VS_SUFFIX)
         optimize "On"
 
-    postbuildcommands { "copy lib/WinPixEventRuntime.dll ../../bin/" }
+    --postbuildcommands { "{COPY} lib/WinPixEventRuntime.dll ../../bin/" }
+
+sourceFilePath = os.realpath("lib/WinPixEventRuntime.dll")
+destinationFilepath = os.realpath("../../bin/WinPixEventRuntime.dll")
+print("Copying " .. sourceFilePath .. " -> " .. destinationFilepath)
+result, err = os.copyfile(sourceFilePath, destinationFilepath)
+if result == nil then
+    print (err)
+end

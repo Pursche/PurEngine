@@ -4,6 +4,7 @@
 #include "ConstantBufferDX12.h"
 
 #include "ImageHandlerDX12.h"
+#include "ShaderHandlerDX12.h"
 #include "../../../CommandList.h"
 
 #include <cassert>
@@ -76,6 +77,10 @@ namespace Renderer
                 _fenceValues[i] = 0; // set the initial fence value to 0
             }
 
+            // create a handle to a fence event
+            _fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+            assert(_fenceEvent != nullptr); // Failed to create fence event
+
             // Create constant buffer descriptor heap
             for (int i = 0; i < FRAME_INDEX_COUNT; ++i)
             {
@@ -110,7 +115,7 @@ namespace Renderer
             assert(SUCCEEDED(result)); // Failed to create DXGI factory
         }
 
-        void RenderDeviceDX12::InitWindow(Window* window)
+        void RenderDeviceDX12::InitWindow(ShaderHandlerDX12* shaderHandler, Window* window)
         {
             HRESULT result;
             assert(_dxgiFactory != nullptr); // We need to have initialized the device before initializing a window!
@@ -148,6 +153,7 @@ namespace Renderer
 
             window->SetSwapChain(swapChain);
             swapChain->frameIndex = swapChain->swapChain->GetCurrentBackBufferIndex();
+            swapChain->bufferCount = bufferCount;
 
             // -- Create the back buffers --
             D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
@@ -158,25 +164,119 @@ namespace Renderer
             result = _device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&swapChain->descriptorHeap));
             assert(SUCCEEDED(result)); // Failed to create RTV Descriptor Heap
 
+            result = swapChain->descriptorHeap->SetName(L"Window Descriptor Heap");
+            assert(SUCCEEDED(result)); // Failed to name swapchain RTV 
+
             swapChain->descriptorSize = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-            CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(swapChain->descriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
             // Create a RTV for each buffer
-            swapChain->renderTargets = new ID3D12Resource*[bufferCount];
-
             for (u32 i = 0; i < bufferCount; i++)
             {
                 // first we get the n'th buffer in the swap chain and store it in the n'th
                // position of our ID3D12Resource array
-                result = swapChain->swapChain->GetBuffer(i, IID_PPV_ARGS(&swapChain->renderTargets[i]));
+                result = swapChain->swapChain->GetBuffer(i, IID_PPV_ARGS(&swapChain->resources[i]));
                 assert(SUCCEEDED(result)); // Failed to get RTV from swapchain
 
-                // the we "create" a render target view which binds the swap chain buffer (ID3D12Resource[n]) to the rtv handle
-                _device->CreateRenderTargetView(swapChain->renderTargets[i], nullptr, rtvHandle);
+                result = swapChain->resources[i]->SetName(L"Window Backbuffer " + i);
+                assert(SUCCEEDED(result)); // Failed to name swapchain RTV 
 
-                // we increment the rtv handle by the rtv descriptor size we got above
-                rtvHandle.Offset(1, swapChain->descriptorSize);
+                swapChain->rtvs[i] = swapChain->descriptorHeap->GetCPUDescriptorHandleForHeapStart();
+                swapChain->rtvs[i].Offset(i, swapChain->descriptorSize);
+
+                // the we "create" a render target view which binds the swap chain buffer (ID3D12Resource[n]) to the rtv handle
+                _device->CreateRenderTargetView(swapChain->resources[i], nullptr, swapChain->rtvs[i]);
             }
+
+            // -- Create present root descriptor --
+            // Create SRV descriptor range
+            D3D12_DESCRIPTOR_RANGE descriptorTableRange;
+            descriptorTableRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+            descriptorTableRange.NumDescriptors = 1;
+            descriptorTableRange.BaseShaderRegister = 0;
+            descriptorTableRange.RegisterSpace = 0;
+            descriptorTableRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+            // Create SRV descriptor table
+            D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
+            descriptorTable.NumDescriptorRanges = 1; // we only have one range
+            descriptorTable.pDescriptorRanges = &descriptorTableRange; // the pointer to the beginning of our ranges array
+
+            // Create root parameter
+            D3D12_ROOT_PARAMETER srvParameter = {};
+            srvParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+            srvParameter.DescriptorTable = descriptorTable;
+            srvParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+            // Create static sampler
+            D3D12_STATIC_SAMPLER_DESC sampler = {};
+            sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+            sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+            sampler.MipLODBias = 0;
+            sampler.MaxAnisotropy = 0;
+            sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+            sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+            sampler.MinLOD = 0.0f;
+            sampler.MaxLOD = D3D12_FLOAT32_MAX;
+            sampler.ShaderRegister = 0;
+            sampler.RegisterSpace = 0;
+            sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+            // Create root signature
+            CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+            rootSignatureDesc.Init(1, &srvParameter,
+                1, &sampler,
+                D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT | D3D12_ROOT_SIGNATURE_FLAG_DENY_VERTEX_SHADER_ROOT_ACCESS | 
+                D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS | D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS | 
+                D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
+            );
+
+            ID3DBlob* signature;
+            result = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
+            assert(SUCCEEDED(result)); // Failed to serialize root signature
+
+            result = _device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&swapChain->rootSig));
+            assert(SUCCEEDED(result)); // Failed to serialize root signature
+
+            // -- Create input layout --
+            D3D12_INPUT_ELEMENT_DESC inputLayout[] = { { "POSITION", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 } };
+
+            // fill out an input layout description structure
+            D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
+            inputLayoutDesc.NumElements = 0;//sizeof(D3D12_INPUT_ELEMENT_DESC);
+            inputLayoutDesc.pInputElementDescs = nullptr;//inputLayout;
+
+            // -- create a pipeline state object (PSO) --
+            D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+            psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
+            psoDesc.pRootSignature = swapChain->rootSig; // the root signature that describes the input data this pso needs
+            psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
+            psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
+            psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
+            psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
+            psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
+            psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
+            psoDesc.NumRenderTargets = 1; // we are only binding one render target
+
+            // Bind shaders
+            VertexShaderDesc vsDesc;
+            vsDesc.path = "Data/shaders/passthrough.vs.hlsl.cso";
+            VertexShaderID vsID = shaderHandler->LoadShader(vsDesc);
+
+            PixelShaderDesc psDesc;
+            psDesc.path = "Data/shaders/passthrough.ps.hlsl.cso";
+            PixelShaderID psID = shaderHandler->LoadShader(psDesc);
+
+            D3D12_SHADER_BYTECODE* vertexShader = shaderHandler->GetBytecode(vsID);
+            psoDesc.VS = *vertexShader;
+           
+            D3D12_SHADER_BYTECODE* pixelShader = shaderHandler->GetBytecode(psID);
+            psoDesc.PS = *pixelShader;
+            
+            // create the pso
+            result = _device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&swapChain->pso));
+            assert(SUCCEEDED(result)); // Failed to create PSO
         }
 
         Backend::ConstantBufferBackend* RenderDeviceDX12::CreateConstantBufferBackend(size_t size)

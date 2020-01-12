@@ -1,6 +1,5 @@
 #pragma once
 #include <Core.h>
-#include "../BackendDispatch.h"
 #include "../Descriptors/GraphicsPipelineDesc.h"
 #include "../Descriptors/ComputePipelineDesc.h"
 
@@ -12,16 +11,14 @@ namespace Renderer
         {
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
-            GraphicsPipelineID pipeline;
+            GraphicsPipelineID pipeline = GraphicsPipelineID::Invalid();
         };
-        const BackendDispatchFunction SetGraphicsPipeline::DISPATCH_FUNCTION = &BackendDispatch::SetGraphicsPipeline;
-
+        
         struct SetComputePipeline
         {
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
-            ComputePipelineID pipeline;
+            ComputePipelineID pipeline = ComputePipelineID::Invalid();
         };
-        const BackendDispatchFunction SetComputePipeline::DISPATCH_FUNCTION = &BackendDispatch::SetComputePipeline;
     }
 }

@@ -62,8 +62,20 @@ namespace Renderer
         virtual void Draw(CommandListID commandList, ModelID model) = 0;
         virtual void PopMarker(CommandListID commandList) = 0;
         virtual void PushMarker(CommandListID commandList, Vector3 color, std::string name) = 0;
+        virtual void SetConstantBuffer(CommandListID commandList, u32 slot, void* gpuResource) = 0;
         virtual void SetPipeline(CommandListID commandList, GraphicsPipelineID pipeline) = 0;
         virtual void SetPipeline(CommandListID commandList, ComputePipelineID pipeline) = 0;
+        virtual void SetScissorRect(CommandListID commandList, ScissorRect scissorRect) = 0;
+        virtual void SetViewport(CommandListID commandList, Viewport viewport) = 0;
+
+
+        // Commandlist based presents
+        virtual void Present(CommandListID commandListID, Window* window, ImageID image) = 0;
+        virtual void Present(CommandListID commandListID, Window* window, DepthImageID image) = 0;
+
+        // Non-commandlist based presents
+        virtual void Present(Window* window, ImageID image) = 0;
+        virtual void Present(Window* window, DepthImageID image) = 0;
 
     protected:
         Renderer() {}; // Pure virtual class, disallow creation of it

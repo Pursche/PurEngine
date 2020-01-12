@@ -4,7 +4,7 @@ namespace Renderer
 {
     RenderGraph Renderer::CreateRenderGraph(RenderGraphDesc& desc)
     {
-        RenderGraph renderGraph;
+        RenderGraph renderGraph(this);
         renderGraph.Init(desc);
 
         return renderGraph;

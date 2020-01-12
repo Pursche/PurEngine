@@ -1,16 +1,17 @@
 #pragma once
 #include <Core.h>
+#include "../ConstantBuffer.h"
 
 namespace Renderer
 {
     namespace Commands
     {
-        struct PushMarker
+        struct SetConstantBuffer
         {
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
-            Vector3 color = Vector3(1, 1, 1);
-            std::string marker;
+            u32 slot = 0;
+            void* gpuResource = nullptr;
         };
     }
 }

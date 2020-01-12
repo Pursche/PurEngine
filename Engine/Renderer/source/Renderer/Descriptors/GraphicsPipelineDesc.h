@@ -1,5 +1,7 @@
 #pragma once
 #include <Core.h>
+#include <functional>
+#include <algorithm>
 #include <Utils/StrongTypedef.h>
 #include "../RenderStates.h"
 #include "../RenderPassResources.h"
@@ -18,6 +20,14 @@ namespace Renderer
     {
         static const int MAX_CONSTANT_BUFFERS = 8;
         static const int MAX_INPUT_LAYOUTS = 8;
+        static const int MAX_BOUND_TEXTURES = 8;
+
+        GraphicsPipelineDesc()
+        {
+            std::fill_n(textures, MAX_BOUND_TEXTURES, RenderPassResource::Invalid());
+            std::fill_n(renderTargets, MAX_RENDER_TARGETS, RenderPassMutableResource::Invalid());
+            std::fill_n(textures, MAX_BOUND_TEXTURES, RenderPassResource::Invalid());
+        }
 
         // This part of the descriptor is hashable in the PipelineHandler
         struct States
@@ -35,15 +45,19 @@ namespace Renderer
         };
         States states;
 
-        // This part isn't hashable in the PipelineHandler since it will depend on the RenderGraph (which gets recreated every frame)
-        RenderGraph* renderGraph = nullptr;
+        // Everything below this isn't hashable in the PipelineHandler since it will depend on the RenderGraph (which gets recreated every frame)
+        std::function<ImageID(RenderPassResource resource)> ResourceToImageID = nullptr;
+        std::function<DepthImageID(RenderPassResource resource)> ResourceToDepthImageID = nullptr;
+        std::function<ImageID(RenderPassMutableResource resource)> MutableResourceToImageID = nullptr;
+        std::function<DepthImageID(RenderPassMutableResource resource)> MutableResourceToDepthImageID = nullptr;
+
+        // Textures
+        RenderPassResource textures[MAX_BOUND_TEXTURES];
 
         // Rendertargets
-        RenderPassMutableResource renderTargets[MAX_RENDER_TARGETS]{ RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid(), RenderPassMutableResource::Invalid() };
+        RenderPassMutableResource renderTargets[MAX_RENDER_TARGETS];
         RenderPassMutableResource depthStencil = RenderPassMutableResource::Invalid();
     };
-
-    
 
     // Lets strong-typedef an ID type with the underlying type of u16
     STRONG_TYPEDEF(GraphicsPipelineID, u16);

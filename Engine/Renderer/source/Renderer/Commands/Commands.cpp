@@ -1,0 +1,29 @@
+#include "../BackendDispatch.h"
+#include "Clear.h"
+#include "Draw.h"
+#include "PopMarker.h"
+#include "PushMarker.h"
+#include "SetConstantBuffer.h"
+#include "SetPipeline.h"
+#include "SetScissorRect.h"
+#include "SetViewport.h"
+#include "Present.h"
+
+namespace Renderer
+{
+    namespace Commands
+    {
+        const BackendDispatchFunction ClearImage::DISPATCH_FUNCTION = &BackendDispatch::ClearImage;
+        const BackendDispatchFunction ClearDepthImage::DISPATCH_FUNCTION = &BackendDispatch::ClearDepthImage;
+        const BackendDispatchFunction Draw::DISPATCH_FUNCTION = &BackendDispatch::Draw;
+        const BackendDispatchFunction PopMarker::DISPATCH_FUNCTION = &BackendDispatch::PopMarker;
+        const BackendDispatchFunction PushMarker::DISPATCH_FUNCTION = &BackendDispatch::PushMarker;
+        const BackendDispatchFunction SetConstantBuffer::DISPATCH_FUNCTION = &BackendDispatch::SetConstantBuffer;
+        const BackendDispatchFunction SetGraphicsPipeline::DISPATCH_FUNCTION = &BackendDispatch::SetGraphicsPipeline;
+        const BackendDispatchFunction SetComputePipeline::DISPATCH_FUNCTION = &BackendDispatch::SetComputePipeline;
+        const BackendDispatchFunction SetScissorRect::DISPATCH_FUNCTION = &BackendDispatch::SetScissorRect;
+        const BackendDispatchFunction SetViewport::DISPATCH_FUNCTION = &BackendDispatch::SetViewport;
+        const BackendDispatchFunction PresentImage::DISPATCH_FUNCTION = &BackendDispatch::PresentImage;
+        const BackendDispatchFunction PresentDepthImage::DISPATCH_FUNCTION = &BackendDispatch::PresentDepthImage;
+    }
+}

@@ -1,16 +1,16 @@
 #pragma once
 #include <Core.h>
+#include "../RenderStates.h"
 
 namespace Renderer
 {
     namespace Commands
     {
-        struct PushMarker
+        struct SetViewport
         {
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
-            Vector3 color = Vector3(1, 1, 1);
-            std::string marker;
+            Viewport viewport;
         };
     }
 }

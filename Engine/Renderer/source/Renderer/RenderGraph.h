@@ -17,7 +17,7 @@ namespace Renderer
         template <typename PassData>
         void AddPass(std::string name, std::function<bool(PassData&, RenderGraphBuilder&)> onSetup, std::function<void(PassData&, CommandList&)> onExecute)
         {
-            IRenderPass* pass = new RenderPass<PassData>(name, onSetup, onExecute, _renderGraphBuilder->_renderer);
+            IRenderPass* pass = new RenderPass<PassData>(name, onSetup, onExecute);
             _passes.push_back(pass);
         }
 
@@ -26,9 +26,12 @@ namespace Renderer
 
         RenderGraphBuilder* GetBuilder() { return _renderGraphBuilder; }
 
+        void InitializePipelineDesc(GraphicsPipelineDesc& desc);
+
     private:
-        RenderGraph()
-            : _renderGraphBuilder(nullptr)
+        RenderGraph(Renderer* renderer)
+            : _renderer(renderer)
+            , _renderGraphBuilder(nullptr)
         {
         
         } // This gets friend-created by Renderer
@@ -38,6 +41,7 @@ namespace Renderer
         std::vector<IRenderPass*> _passes;
         std::vector<IRenderPass*> _executingPasses;
 
+        Renderer* _renderer;
         RenderGraphBuilder* _renderGraphBuilder;
 
         friend class Renderer; // To have access to the constructor

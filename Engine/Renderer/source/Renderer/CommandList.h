@@ -9,7 +9,11 @@
 #include "Commands/Draw.h"
 #include "Commands/PopMarker.h"
 #include "Commands/PushMarker.h"
+#include "Commands/SetConstantBuffer.h"
 #include "Commands/SetPipeline.h"
+#include "Commands/SetScissorRect.h"
+#include "Commands/SetViewport.h"
+#include "Commands/Present.h"
 
 namespace Renderer
 {

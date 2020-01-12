@@ -18,7 +18,7 @@ namespace Renderer
     {
     public:
         virtual bool Setup(RenderGraphBuilder* renderGraphBuilder) = 0;
-        virtual void Execute() = 0;
+        virtual void Execute(CommandList& commandList) = 0;
     };
 
     template <typename PassData>
@@ -28,8 +28,7 @@ namespace Renderer
         typedef std::function<void(PassData&, CommandList&)> ExecuteFunction;
 
     private:
-        RenderPass(std::string name, SetupFunction onSetup, ExecuteFunction onExecute, Renderer* renderer)
-            : _commandList(renderer)
+        RenderPass(std::string name, SetupFunction onSetup, ExecuteFunction onExecute)
         {
             _name = name;
             _onSetup = onSetup;
@@ -41,9 +40,9 @@ namespace Renderer
             return _onSetup(_data, *renderGraphBuilder);
         }
 
-        void Execute() override
+        void Execute(CommandList& commandList) override
         {
-            _onExecute(_data, _commandList);
+            _onExecute(_data, commandList);
         }
 
         bool ShouldRun() { return _shouldRun; }
@@ -55,7 +54,6 @@ namespace Renderer
         ExecuteFunction _onExecute;
 
         PassData _data;
-        CommandList _commandList;
 
         GraphicsPipelineID _graphicsPipeline = GraphicsPipelineID::Invalid();
         ComputePipelineID _computePipeline = ComputePipelineID::Invalid();

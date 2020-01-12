@@ -3,26 +3,26 @@
 #include "../Descriptors/ImageDesc.h"
 #include "../Descriptors/DepthImageDesc.h"
 
+class Window;
+
 namespace Renderer
 {
     namespace Commands
     {
-        struct ClearImage
+        struct PresentImage
         {
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
+            Window* window = nullptr;
             ImageID image = ImageID::Invalid();
-            Vector4 color = Vector4(0, 0, 0, 1);
         };
         
-        struct ClearDepthImage
+        struct PresentDepthImage
         {
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
+            Window* window = nullptr;
             DepthImageID image = DepthImageID::Invalid();
-            DepthClearFlags flags = DepthClearFlags::DEPTH_CLEAR_BOTH;
-            f32 depth = 0.0f;
-            u8 stencil = 0;
         };
     }
 }

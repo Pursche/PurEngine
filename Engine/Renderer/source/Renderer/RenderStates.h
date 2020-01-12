@@ -176,8 +176,8 @@ namespace Renderer
 
     struct DepthStencilState
     {
-        bool depthEnable = true;
-        bool depthWriteEnable = true;
+        bool depthEnable = false;
+        bool depthWriteEnable = false;
         ComparisonFunc depthFunc = COMPARISON_FUNC_LESS;
         bool stencilEnable = false;
         u8 stencilReadMask = 255;
@@ -363,5 +363,23 @@ namespace Renderer
         DEPTH_CLEAR_DEPTH,
         DEPTH_CLEAR_STENCIL,
         DEPTH_CLEAR_BOTH
+    };
+
+    struct Viewport
+    {
+        f32 topLeftX = 0;
+        f32 topLeftY = 0;
+        f32 width = 0;
+        f32 height = 0;
+        f32 minDepth = 0;
+        f32 maxDepth = 0;
+    };
+
+    struct ScissorRect
+    {
+        i32 left;
+        i32 top;
+        i32 right;
+        i32 bottom;
     };
 }

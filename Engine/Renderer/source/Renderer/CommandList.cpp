@@ -14,6 +14,6 @@ namespace Renderer
             _functions[i](_renderer, commandList, _data[i]);
         }
 
-        _renderer->EndCommandList(commandList);
+        //_renderer->EndCommandList(commandList);
     }
 }

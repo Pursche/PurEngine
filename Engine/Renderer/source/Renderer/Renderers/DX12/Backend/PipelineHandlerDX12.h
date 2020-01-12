@@ -26,6 +26,9 @@ namespace Renderer
             GraphicsPipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc);
             ComputePipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const ComputePipelineDesc& desc);
 
+            const GraphicsPipelineDesc& GetDescriptor(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].desc; }
+            const ComputePipelineDesc& GetDescriptor(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].desc; }
+
             ID3D12PipelineState* GetPSO(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].pso; }
             ID3D12PipelineState* GetPSO(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].pso; }
 
@@ -44,6 +47,7 @@ namespace Renderer
             struct GraphicsPipelineCacheDesc
             {
                 GraphicsPipelineDesc::States states;
+                u32 numSRVs = 0;
                 ImageID renderTargets[MAX_RENDER_TARGETS] = { ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid(), ImageID::Invalid() };
                 DepthImageID depthStencil = DepthImageID::Invalid();
             };

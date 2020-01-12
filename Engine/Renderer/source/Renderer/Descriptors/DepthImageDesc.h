@@ -34,6 +34,7 @@ namespace Renderer
 
     struct DepthImageDesc
     {
+        std::string debugName = "";
         Vector2i dimensions = Vector2i(0,0);
         DepthImageFormat format = DEPTH_IMAGE_FORMAT_UNKNOWN;
         SampleCount sampleCount = SAMPLE_COUNT_1;

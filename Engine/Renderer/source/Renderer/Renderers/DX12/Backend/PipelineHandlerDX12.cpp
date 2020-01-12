@@ -25,7 +25,10 @@ namespace Renderer
 
         GraphicsPipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc)
         {
-            assert(desc.renderGraph != nullptr); // You need to tell the GraphicsPipelineDesc which RenderGraph it will use to get resources
+            assert(desc.ResourceToImageID != nullptr); // You need to bind this function pointer before creating pipeline, maybe use RenderGraph::InitializePipelineDesc?
+            assert(desc.ResourceToDepthImageID != nullptr); // You need to bind this function pointer before creating pipeline, maybe use RenderGraph::InitializePipelineDesc?
+            assert(desc.MutableResourceToImageID != nullptr); // You need to bind this function pointer before creating pipeline, maybe use RenderGraph::InitializePipelineDesc?
+            assert(desc.MutableResourceToDepthImageID != nullptr); // You need to bind this function pointer before creating pipeline, maybe use RenderGraph::InitializePipelineDesc?
 
             HRESULT result;
             size_t nextID;
@@ -49,14 +52,26 @@ namespace Renderer
             // -- create root descriptors --
             // Figure out how many we need
             u8 numRootDescriptors = 0;
+            u8 numConstantBuffers = 0;
             for (auto& cbState : desc.states.constantBufferStates)
             {
                 if (!cbState.enabled)
                     break;
 
                 numRootDescriptors++;
+                numConstantBuffers++;
             }
 
+            u8 numSRVs = 0;
+            for (auto& texture : desc.textures)
+            {
+                if (texture == RenderPassResource::Invalid())
+                    break;
+
+                numRootDescriptors++;
+                numSRVs++;
+            }
+            
             // Create root descriptors
             std::vector<D3D12_ROOT_DESCRIPTOR> rootDescriptors(numRootDescriptors);
             for(u32 i = 0; i < numRootDescriptors; i++)
@@ -67,11 +82,19 @@ namespace Renderer
 
             // Create root parameters
             std::vector<D3D12_ROOT_PARAMETER> rootParameters(numRootDescriptors);
-            for (u32 i = 0; i < numRootDescriptors; i++)
+            // Create CB root parameters
+            for (u32 i = 0; i < numConstantBuffers; i++)
             {
                 rootParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
                 rootParameters[i].Descriptor = rootDescriptors[i];
                 rootParameters[i].ShaderVisibility = ToD3D12ShaderVisibility(desc.states.constantBufferStates[i].shaderVisibility);
+            }
+            // Create SRV root parameters
+            for (u32 i = numConstantBuffers; i < numRootDescriptors; i++)
+            {
+                rootParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+                rootParameters[i].Descriptor = rootDescriptors[i];
+                rootParameters[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
             }
 
             // Create root signature
@@ -88,7 +111,7 @@ namespace Renderer
             result = device->_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&pipeline.rootSig));
             assert(SUCCEEDED(result)); // Failed to serialize root signature
 
-            // -- create input layout --
+            // -- Create input layout --
             u8 numInputLayouts = 0;
             for (auto& inputLayout : desc.states.inputLayouts)
             {
@@ -145,14 +168,14 @@ namespace Renderer
                 if (desc.renderTargets[i] == RenderPassMutableResource::Invalid())
                     break;
                 
-                ImageID imageId = desc.renderGraph->GetBuilder()->GetImage(desc.renderTargets[i]);
+                ImageID imageId = desc.MutableResourceToImageID(desc.renderTargets[i]);
                 psoDesc.RTVFormats[i] = imageHandler->GetDXGIFormat(imageId);
                 psoDesc.NumRenderTargets++;
             }
             
             if (desc.depthStencil != RenderPassMutableResource::Invalid())
             {
-                DepthImageID depthImageId = desc.renderGraph->GetBuilder()->GetDepthImage(desc.depthStencil);
+                DepthImageID depthImageId = desc.MutableResourceToDepthImageID(desc.depthStencil);
                 psoDesc.DSVFormat = imageHandler->GetDXGIFormat(depthImageId);
             }
             psoDesc.SampleDesc = CalculateSampleDesc(imageHandler, desc);
@@ -664,7 +687,7 @@ namespace Renderer
                 if (renderTarget == RenderPassMutableResource::Invalid())
                     break;
 
-                ImageID imageID = desc.renderGraph->GetBuilder()->GetImage(renderTarget);
+                ImageID imageID = desc.MutableResourceToImageID(renderTarget);
                 const ImageDesc& descriptor = imageHandler->GetDescriptor(imageID);
 
                 u32 descSampleCount = SampleCountToInt(descriptor.sampleCount);
@@ -679,7 +702,7 @@ namespace Renderer
 
             if (desc.depthStencil != RenderPassMutableResource::Invalid())
             {
-                DepthImageID imageID = desc.renderGraph->GetBuilder()->GetDepthImage(desc.depthStencil);
+                DepthImageID imageID = desc.MutableResourceToDepthImageID(desc.depthStencil);
                 const DepthImageDesc& descriptor = imageHandler->GetDescriptor(imageID);
 
                 u32 descSampleCount = SampleCountToInt(descriptor.sampleCount);
@@ -703,17 +726,26 @@ namespace Renderer
             GraphicsPipelineCacheDesc cacheDesc;
             cacheDesc.states = desc.states;
 
+            cacheDesc.numSRVs = 0;
+            for (auto& texture : desc.textures)
+            {
+                if (texture == RenderPassResource::Invalid())
+                    break;
+
+                cacheDesc.numSRVs++;
+            }
+
             for (int i = 0; i < MAX_RENDER_TARGETS; i++)
             {
                 if (desc.renderTargets[i] == RenderPassMutableResource::Invalid())
                     break;
 
-                cacheDesc.renderTargets[i] = desc.renderGraph->GetBuilder()->GetImage(desc.renderTargets[i]);
+                cacheDesc.renderTargets[i] = desc.MutableResourceToImageID(desc.renderTargets[i]);
             }
 
             if (desc.depthStencil != RenderPassMutableResource::Invalid())
             {
-                cacheDesc.depthStencil = desc.renderGraph->GetBuilder()->GetDepthImage(desc.depthStencil);
+                cacheDesc.depthStencil = desc.MutableResourceToDepthImageID(desc.depthStencil);
             }
 
             u64 hash = XXHash64::hash(&cacheDesc, sizeof(cacheDesc), 0);

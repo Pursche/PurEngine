@@ -1,4 +1,5 @@
 #include "ImageHandlerDX12.h"
+#include <Utils/StringUtils.h>
 #include "RenderDeviceDX12.h"
 #include <cassert>
 
@@ -57,6 +58,13 @@ namespace Renderer
                 &resourceDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(&image.resource));
             assert(SUCCEEDED(result)); // Failed to create commited resource
 
+            {
+                std::wstring debugName = StringUtils::StringToWString(desc.debugName);
+                debugName.append(L" Resource");
+                result = image.resource->SetName(debugName.c_str());
+                assert(SUCCEEDED(result)); // Failed to name commited resource
+            }
+
             // Create RTV Descriptor heap TODO: Figure out a way to manage and combine descriptor heaps since it should cache better
             { 
                 D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
@@ -66,11 +74,17 @@ namespace Renderer
 
                 result = device->_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&image.rtvDescriptorHeap));
                 assert(SUCCEEDED(result)); // Failed to create RTV descriptor heap
+
+                {
+                    std::wstring debugName = StringUtils::StringToWString(desc.debugName);
+                    debugName.append(L" RTV Descriptor Heap");
+                    result = image.rtvDescriptorHeap->SetName(debugName.c_str());
+                    assert(SUCCEEDED(result)); // Failed to name RTV descriptor heap
+                }
             }
 
             // Create RTV
             image.rtv = image.rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-
             device->_device->CreateRenderTargetView(image.resource, nullptr, image.rtv);
 
             // Create SRV/UAV Descriptor heap TODO: Figure out a way to manage and combine descriptor heaps since it should cache better
@@ -82,13 +96,19 @@ namespace Renderer
 
                 result = device->_device->CreateDescriptorHeap(&srvUavHeapDesc, IID_PPV_ARGS(&image.srvUavDescriptorHeap));
                 assert(SUCCEEDED(result)); // Failed to create SRV/UAV descriptor heap
+
+                {
+                    std::wstring debugName = StringUtils::StringToWString(desc.debugName);
+                    debugName.append(L" SRV UAV Descriptor Heap");
+                    result = image.srvUavDescriptorHeap->SetName(debugName.c_str());
+                    assert(SUCCEEDED(result)); // Failed to name SRV/UAV descriptor heap
+                }
             }
             
             auto srvUavDescriptorSize = device->_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
             // Create SRV
             image.srv = image.srvUavDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-
             device->_device->CreateShaderResourceView(image.resource, nullptr, image.srv); // TODO: Unsure if this works, do we need a descriptor as well?
 
             // Create UAV
@@ -137,6 +157,13 @@ namespace Renderer
                 &resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&image.resource));
             assert(SUCCEEDED(result)); // Failed to create commited resource
 
+            {
+                std::wstring debugName = StringUtils::StringToWString(desc.debugName);
+                debugName.append(L" Resource");
+                result = image.resource->SetName(debugName.c_str());
+                assert(SUCCEEDED(result)); // Failed to name commited resource
+            }
+
             // Create DSV Descriptor heap TODO: Figure out a way to manage and combine descriptor heaps since it should cache better
             {
                 D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
@@ -146,6 +173,13 @@ namespace Renderer
 
                 result = device->_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&image.dsvDescriptorHeap));
                 assert(SUCCEEDED(result)); // Failed to create DSV descriptor heap
+
+                {
+                    std::wstring debugName = StringUtils::StringToWString(desc.debugName);
+                    debugName.append(L" DSV Descriptor Heap");
+                    result = image.dsvDescriptorHeap->SetName(debugName.c_str());
+                    assert(SUCCEEDED(result)); // Failed to name DSV descriptor heap
+                }
             }
 
             // Create DSV
@@ -176,6 +210,13 @@ namespace Renderer
 
                 result = device->_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&image.srvDescriptorHeap));
                 assert(SUCCEEDED(result)); // Failed to create SRV descriptor heap
+
+                {
+                    std::wstring debugName = StringUtils::StringToWString(desc.debugName);
+                    debugName.append(L" SRV Descriptor Heap");
+                    result = image.srvDescriptorHeap->SetName(debugName.c_str());
+                    assert(SUCCEEDED(result)); // Failed to name SRV descriptor heap
+                }
             }
 
             // Create SRV
@@ -238,6 +279,24 @@ namespace Renderer
             return ToDXGIFormat(_depthImages[static_cast<type>(id)].desc.format);
         }
 
+        ID3D12Resource* ImageHandlerDX12::GetResource(const ImageID id)
+        {
+            using type = type_safe::underlying_type<ImageID>;
+
+            // Lets make sure this id exists
+            assert(_images.size() > static_cast<type>(id));
+            return _images[static_cast<type>(id)].resource;
+        }
+
+        ID3D12Resource* ImageHandlerDX12::GetResource(const DepthImageID id)
+        {
+            using type = type_safe::underlying_type<DepthImageID>;
+
+            // Lets make sure this id exists
+            assert(_depthImages.size() > static_cast<type>(id));
+            return _depthImages[static_cast<type>(id)].resource;
+        }
+
         D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetRTV(const ImageID id)
         {
             using type = type_safe::underlying_type<ImageID>;
@@ -248,6 +307,12 @@ namespace Renderer
         {
             using type = type_safe::underlying_type<ImageID>;
             return _images[static_cast<type>(id)].srv;
+        }
+
+        ID3D12DescriptorHeap* ImageHandlerDX12::GetSRVDescriptorHeap(const ImageID id)
+        {
+            using type = type_safe::underlying_type<ImageID>;
+            return _images[static_cast<type>(id)].srvUavDescriptorHeap;
         }
 
         D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetUAV(const ImageID id)
@@ -266,6 +331,12 @@ namespace Renderer
         {
             using type = type_safe::underlying_type<DepthImageID>;
             return _depthImages[static_cast<type>(id)].srv;
+        }
+
+        ID3D12DescriptorHeap* ImageHandlerDX12::GetSRVDescriptorHeap(const DepthImageID id)
+        {
+            using type = type_safe::underlying_type<DepthImageID>;
+            return _depthImages[static_cast<type>(id)].srvDescriptorHeap;
         }
 
         DXGI_FORMAT ImageHandlerDX12::ToDXGIFormat(ImageFormat format)

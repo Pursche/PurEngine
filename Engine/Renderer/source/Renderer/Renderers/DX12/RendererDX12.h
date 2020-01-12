@@ -36,14 +36,25 @@ namespace Renderer
 
         // Command List Functions
         CommandListID BeginCommandList() override;
-        void EndCommandList(CommandListID commandList) override;
-        void Clear(CommandListID commandList, ImageID image, Vector4 color) override;
-        void Clear(CommandListID commandList, DepthImageID image, DepthClearFlags clearFlags, f32 depth, u8 stencil) override;
-        void Draw(CommandListID commandList, ModelID model) override;
-        void PopMarker(CommandListID commandList) override;
-        void PushMarker(CommandListID commandList, Vector3 color, std::string name) override;
-        void SetPipeline(CommandListID commandList, GraphicsPipelineID pipeline) override;
-        void SetPipeline(CommandListID commandList, ComputePipelineID pipeline) override;
+        void EndCommandList(CommandListID commandListID) override;
+        void Clear(CommandListID commandListID, ImageID image, Vector4 color) override;
+        void Clear(CommandListID commandListID, DepthImageID image, DepthClearFlags clearFlags, f32 depth, u8 stencil) override;
+        void Draw(CommandListID commandListID, ModelID model) override;
+        void PopMarker(CommandListID commandListID) override;
+        void PushMarker(CommandListID commandListID, Vector3 color, std::string name) override;
+        void SetConstantBuffer(CommandListID commandListID, u32 slot, void* gpuResource) override;
+        void SetPipeline(CommandListID commandListID, GraphicsPipelineID pipeline) override;
+        void SetPipeline(CommandListID commandListID, ComputePipelineID pipeline) override;
+        void SetScissorRect(CommandListID commandListID, ScissorRect scissorRect) override;
+        void SetViewport(CommandListID commandListID, Viewport viewport) override;
+
+        // Commandlist based presents
+        void Present(CommandListID commandListID, Window* window, ImageID image) override;
+        void Present(CommandListID commandListID, Window* window, DepthImageID image) override;
+
+        // Non-commandlist based presents
+        void Present(Window* window, ImageID image) override;
+        void Present(Window* window, DepthImageID image) override;
         
     protected:
         Backend::ConstantBufferBackend* CreateConstantBufferBackend(size_t size) override;
