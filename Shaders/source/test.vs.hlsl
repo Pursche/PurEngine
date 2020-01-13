@@ -30,6 +30,6 @@ VS_OUTPUT main(VS_INPUT input)
     VS_OUTPUT output;
 
     output.pos = mul(mul(mul(float4(input.pos, 1.0f), modelCB.model), viewCB.view), viewCB.proj);
-    output.color = modelCB.color;
+    output.color = float4(output.pos.xy, 0.0f, 1.0f);//modelCB.color;
     return output;
 }

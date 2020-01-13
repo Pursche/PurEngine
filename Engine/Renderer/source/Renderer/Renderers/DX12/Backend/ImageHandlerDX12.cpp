@@ -113,6 +113,7 @@ namespace Renderer
 
             // Create UAV
             image.uav = image.srvUavDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+            
             image.uav.ptr += srvUavDescriptorSize;
             
             device->_device->CreateUnorderedAccessView(image.resource, nullptr, nullptr, image.uav); // TODO: Unsure if this works, do we need a descriptor as well? What about counter resource?

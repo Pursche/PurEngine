@@ -16,12 +16,13 @@ namespace Renderer
     {
         struct ConstantBufferBackend;
         class ShaderHandlerDX12;
+        class CommandListHandlerDX12;
 
         class RenderDeviceDX12
         {
         public:
             void Init();
-            void InitWindow(ShaderHandlerDX12* shaderHandler, Window*);
+            void InitWindow(ShaderHandlerDX12* shaderHandler, CommandListHandlerDX12* commandListHandler, Window*);
 
             ConstantBufferBackend* CreateConstantBufferBackend(size_t size);
 

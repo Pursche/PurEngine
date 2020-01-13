@@ -33,6 +33,10 @@ namespace Renderer
             ID3D12Resource* resources[3];
             CD3DX12_CPU_DESCRIPTOR_HANDLE rtvs[3];
 
+            ID3D12Resource* vertexBuffer = nullptr;
+            D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+
+
             ID3D12PipelineState* pso = nullptr;
             ID3D12RootSignature* rootSig = nullptr;
         };

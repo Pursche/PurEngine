@@ -5,6 +5,7 @@
 
 #include "ImageHandlerDX12.h"
 #include "ShaderHandlerDX12.h"
+#include "CommandListHandlerDX12.h"
 #include "../../../CommandList.h"
 
 #include <cassert>
@@ -115,7 +116,7 @@ namespace Renderer
             assert(SUCCEEDED(result)); // Failed to create DXGI factory
         }
 
-        void RenderDeviceDX12::InitWindow(ShaderHandlerDX12* shaderHandler, Window* window)
+        void RenderDeviceDX12::InitWindow(ShaderHandlerDX12* shaderHandler, CommandListHandlerDX12* commandListHandler, Window* window)
         {
             HRESULT result;
             assert(_dxgiFactory != nullptr); // We need to have initialized the device before initializing a window!
@@ -240,12 +241,24 @@ namespace Renderer
             assert(SUCCEEDED(result)); // Failed to serialize root signature
 
             // -- Create input layout --
-            D3D12_INPUT_ELEMENT_DESC inputLayout[] = { { "POSITION", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 } };
+            D3D12_INPUT_ELEMENT_DESC inputLayout[] = { 
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+            };
 
             // fill out an input layout description structure
             D3D12_INPUT_LAYOUT_DESC inputLayoutDesc = {};
-            inputLayoutDesc.NumElements = 0;//sizeof(D3D12_INPUT_ELEMENT_DESC);
-            inputLayoutDesc.pInputElementDescs = nullptr;//inputLayout;
+            inputLayoutDesc.NumElements = _countof(inputLayout);
+            inputLayoutDesc.pInputElementDescs = inputLayout;
+
+            D3D12_DEPTH_STENCIL_DESC depthStencilState = {};
+            depthStencilState.DepthEnable = false;
+            depthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+            D3D12_RASTERIZER_DESC rasterizerState = {};
+            rasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+            rasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+            rasterizerState.FrontCounterClockwise = false;
 
             // -- create a pipeline state object (PSO) --
             D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -255,9 +268,10 @@ namespace Renderer
             psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
             psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
             psoDesc.SampleMask = 0xffffffff; // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
-            psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT); // a default rasterizer state.
+            psoDesc.RasterizerState = rasterizerState;
             psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT); // a default blent state.
             psoDesc.NumRenderTargets = 1; // we are only binding one render target
+            psoDesc.DepthStencilState = depthStencilState;
 
             // Bind shaders
             VertexShaderDesc vsDesc;
@@ -277,6 +291,75 @@ namespace Renderer
             // create the pso
             result = _device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&swapChain->pso));
             assert(SUCCEEDED(result)); // Failed to create PSO
+
+            struct Vertex
+            {
+                Vertex(Vector3 inPos, Vector2 inTexcoord)
+                    : pos(inPos)
+                    , texcoord(inTexcoord)
+                {}
+
+                Vector3 pos;
+                Vector2 texcoord;
+            };
+
+            // -- Create quad vertex buffer --
+            Vertex vertices[] = 
+            {
+                // Top left triangle
+                Vertex(Vector3(-1.0f, 1.0f, 0.5f), Vector2(0.0f, 0.0f)), // Upper left corner
+                Vertex(Vector3(1.0f, 1.0f, 0.5f), Vector2(1.0f, 0.0f)), // Upper right corner
+                Vertex(Vector3(-1.0f, -1.0f, 0.5f), Vector2(0.0f, 1.0f)), // Lower left corner
+                Vertex(Vector3(1.0f, -1.0f, 0.5f), Vector2(1.0f, 1.0f)) // Lower right corner
+            };
+
+            int vBufferSize = sizeof(vertices);
+
+            result = _device->CreateCommittedResource(
+                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+                D3D12_HEAP_FLAG_NONE, // no flags
+                &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize),
+                D3D12_RESOURCE_STATE_COPY_DEST,
+                nullptr,
+                IID_PPV_ARGS(&swapChain->vertexBuffer));
+            assert(SUCCEEDED(result)); // Failed to create Vertex Buffer
+
+            result = swapChain->vertexBuffer->SetName(L"SwapChain Vertex Buffer Resource Heap");
+            assert(SUCCEEDED(result)); // Failed to name Vertex Buffer
+
+            ID3D12Resource* vBufferUploadHeap;
+            result = _device->CreateCommittedResource(
+                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+                D3D12_HEAP_FLAG_NONE,
+                &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize),
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr,
+                IID_PPV_ARGS(&vBufferUploadHeap));
+            assert(SUCCEEDED(result)); // Failed to create Vertex Upload Buffer
+
+            result = vBufferUploadHeap->SetName(L"SwapChain Vertex Buffer Upload Resource Heap");
+            assert(SUCCEEDED(result)); // Failed to name Vertex Upload Buffer
+
+            // store vertex buffer in upload heap
+            D3D12_SUBRESOURCE_DATA vertexData = {};
+            vertexData.pData = reinterpret_cast<BYTE*>(vertices);
+            vertexData.RowPitch = vBufferSize;
+            vertexData.SlicePitch = vBufferSize;
+
+            CommandListID commandListID = commandListHandler->BeginCommandList(this);
+            ID3D12GraphicsCommandList* commandList = commandListHandler->GetCommandList(commandListID);
+
+            UpdateSubresources(commandList, swapChain->vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
+
+            // transition the vertex buffer data from copy destination state to vertex buffer state
+            commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(swapChain->vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+            commandListHandler->EndCommandList(this, commandListID);
+
+            // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
+            swapChain->vertexBufferView.BufferLocation = swapChain->vertexBuffer->GetGPUVirtualAddress();
+            swapChain->vertexBufferView.StrideInBytes = sizeof(Vertex);
+            swapChain->vertexBufferView.SizeInBytes = vBufferSize;
         }
 
         Backend::ConstantBufferBackend* RenderDeviceDX12::CreateConstantBufferBackend(size_t size)

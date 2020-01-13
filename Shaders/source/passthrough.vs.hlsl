@@ -1,7 +1,8 @@
 
 struct VS_INPUT
 {
-    uint vertexIndex : SV_VERTEXID;
+    float3 pos : POSITION;
+    float2 texCoord : TEXCOORD;
 };
 
 struct VS_OUTPUT
@@ -14,8 +15,9 @@ VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
 
-    output.texCoord = float2(input.vertexIndex & 1, input.vertexIndex >> 1);
-    output.pos = float4((output.texCoord.x - 0.5f) * 2, -(output.texCoord.y - 0.5f) * 2, 0, 1);
+    //output.texCoord = float2(input.vertexIndex & 1, input.vertexIndex >> 1);
+    output.pos = float4(input.pos, 1.0f);
+    output.texCoord = input.texCoord;
 
     return output;
 }

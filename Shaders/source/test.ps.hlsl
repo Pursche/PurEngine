@@ -8,5 +8,6 @@ struct VS_OUTPUT
 float4 main(VS_OUTPUT input) : SV_TARGET
 {
     // return interpolated color
+    //return float4(input.pos.x / 1280.0f, input.pos.y / 720.0f, 0.0f, 1.0f);
     return input.color;
 }

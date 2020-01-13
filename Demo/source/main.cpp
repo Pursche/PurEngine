@@ -28,7 +28,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     Renderer::Renderer* renderer = new Renderer::RendererDX12();
     renderer->InitWindow(&mainWindow);
 
-    Camera camera(Vector3(0,0,-10));
+    Camera camera(Vector3(0,0,10));
 
     // Create permanent Resources
     Renderer::ImageDesc mainColorDesc;
@@ -85,6 +85,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         projMatrix.Transpose();
 
         viewConstantBuffer.Apply(0);
+        viewConstantBuffer.Apply(1);
     }
 
     struct ModelConstantBuffer
@@ -118,7 +119,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         //oldRenderer.Update(deltaTime);
         //oldRenderer.Render();
 
-        viewConstantBuffer.resource.viewMatrix = camera.GetViewMatrix().Inverted();
+        viewConstantBuffer.resource.viewMatrix = camera.GetViewMatrix().Transposed();
         viewConstantBuffer.Apply(frameIndex);
 
         Renderer::RenderGraphDesc renderGraphDesc;
@@ -277,7 +278,8 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                     //pipelineDesc.states.depthStencilState.depthWriteEnable = false;
                     //pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_GREATER;
 
-                    pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_NONE;
+                    pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_BACK;
+                    //pipelineDesc.states.rasterizerState.frontFaceMode = Renderer::FrontFaceState::FRONT_FACE_STATE_COUNTERCLOCKWISE;
                     //pipelineDesc.states.rasterizerState.frontFaceMode = Renderer::FrontFaceState::FRONT_FACE_STATE_CLOCKWISE;
 
                     // Textures
@@ -313,7 +315,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                     // Clear mainColor TODO: This should be handled by the parameter in Setup, and it should definitely not act on ImageID and DepthImageID
                     Renderer::Commands::ClearImage* clearMainColorCommand = commandList.AddCommand<Renderer::Commands::ClearImage>(); // TODO(immediately): Abstract this into something more DX11-like                                                                                                          
                     clearMainColorCommand->image = mainColor; // TODO: I really don't like this
-                    clearMainColorCommand->color = Vector4(1, 0, 0, 1);
+                    clearMainColorCommand->color = Vector4(0, 0, 0, 1);
 
                     // Render main layer
                     Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MainRenderLayer);

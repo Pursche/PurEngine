@@ -28,7 +28,7 @@ namespace Renderer
 
     void RendererDX12::InitWindow(Window* window)
     {
-        _device->InitWindow(_shaderHandler, window);
+        _device->InitWindow(_shaderHandler, _commandListHandler, window);
     }
 
     ImageID RendererDX12::CreateImage(ImageDesc& desc)
@@ -281,11 +281,26 @@ namespace Renderer
         D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapChain->rtvs[frameIndex];
         commandList->OMSetRenderTargets(1, &rtv, false, nullptr);
 
+        // Set viewport and scissor rect
+        D3D12_VIEWPORT viewport = {};
+        viewport.Width = window->GetWindowSize().x;
+        viewport.Height = window->GetWindowSize().y;
+        viewport.TopLeftX = 0;
+        viewport.TopLeftY = 0;
+        viewport.MinDepth = 0;
+        viewport.MaxDepth = 1;
+        commandList->RSSetViewports(1, &viewport);
+        
+        D3D12_RECT rect = {};
+        rect.right = static_cast<LONG>(viewport.Width);
+        rect.bottom = static_cast<LONG>(viewport.Height);
+        commandList->RSSetScissorRects(1, &rect);
+
         // Draw fullscreen quad to backbuffer
-        commandList->IASetVertexBuffers(0, 0, NULL);
+        commandList->IASetVertexBuffers(0, 1, &swapChain->vertexBufferView);
         commandList->IASetIndexBuffer(NULL);
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        commandList->DrawInstanced(6, 1, 0, 0);
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        commandList->DrawInstanced(4, 1, 0, 0);
 
         // Transition backbuffer back to Present
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
