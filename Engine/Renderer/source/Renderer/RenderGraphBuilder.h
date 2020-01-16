@@ -3,11 +3,18 @@
 #include <vector>
 #include <functional>
 
+#include <Containers/DynamicArray.h>
+
 #include "RenderStates.h"
 #include "RenderPassResources.h"
 
 #include "Descriptors/ImageDesc.h"
 #include "Descriptors/DepthImageDesc.h"
+
+namespace Memory
+{
+    class Allocator;
+}
 
 namespace Renderer
 {
@@ -18,6 +25,8 @@ namespace Renderer
     class RenderGraphBuilder
     {
     public:
+        RenderGraphBuilder(Memory::Allocator* allocator, Renderer* renderer);
+
         enum WriteMode
         {
             WRITE_MODE_RENDERTARGET,
@@ -62,21 +71,19 @@ namespace Renderer
 
     private:
         void Compile(CommandList* commandList);
-        RenderGraphBuilder(Renderer* renderer); // This is private so only a RenderGraph can create it
-
+        
         RenderPassResource GetResource(ImageID id);
         RenderPassResource GetResource(DepthImageID id);
         RenderPassMutableResource GetMutableResource(ImageID id);
         RenderPassMutableResource GetMutableResource(DepthImageID id);
 
     private:
+        Memory::Allocator* _allocator;
         RasterizerState _rasterizerState;
         DepthStencilState _depthStencilState;
         Renderer* _renderer;
 
-        std::vector<ImageID> _trackedImages;
-        std::vector<DepthImageID> _trackedDepthImages;
-
-        friend class RenderGraph;
+        DynamicArray<ImageID> _trackedImages;
+        DynamicArray<DepthImageID> _trackedDepthImages;
     };
 }

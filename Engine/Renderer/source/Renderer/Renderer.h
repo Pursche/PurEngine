@@ -1,7 +1,7 @@
 #pragma once
 #include <Core.h>
 #include <Utils/StringUtils.h>
-#include <Utils/RobinHood.h>
+#include <Containers/RobinHood.h>
 #include "RenderGraph.h"
 #include "RenderGraphBuilder.h"
 #include "RenderLayer.h"
@@ -27,6 +27,7 @@ namespace Renderer
     {
     public:
         virtual void InitWindow(Window* window) = 0;
+        virtual void Deinit() = 0;
 
         RenderGraph CreateRenderGraph(RenderGraphDesc& desc);
         RenderLayer& GetRenderLayer(u32 layerHash);

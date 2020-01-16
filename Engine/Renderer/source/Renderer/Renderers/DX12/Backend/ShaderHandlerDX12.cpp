@@ -26,6 +26,8 @@ namespace Renderer
             {
                 delete shader.bytecode;
             }
+
+            // TODO: Clean up all held resources
         }
 
         VertexShaderID ShaderHandlerDX12::LoadShader(const VertexShaderDesc& desc)

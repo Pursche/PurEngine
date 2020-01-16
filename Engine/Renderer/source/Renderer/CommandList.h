@@ -3,6 +3,8 @@
 #include "BackendDispatch.h"
 #include "Descriptors/CommandListDesc.h"
 #include <vector>
+#include <Memory/StackAllocator.h>
+#include <Containers/DynamicArray.h>
 
 // Commands
 #include "Commands/Clear.h"
@@ -20,8 +22,11 @@ namespace Renderer
     class CommandList
     {
     public:
-        CommandList(Renderer* renderer)
+        CommandList(Renderer* renderer, Memory::Allocator* allocator)
             : _renderer(renderer)
+            , _allocator(allocator)
+            , _functions(allocator, 32)
+            , _data(allocator, 32)
         {
 
         }
@@ -44,23 +49,27 @@ namespace Renderer
         template<typename Command>
         Command* AllocateCommand()
         {
-            return new Command(); // TODO: Frame allocator
+            assert(_allocator != nullptr);
+
+            return Memory::Allocator::New<Command>(_allocator);
         }
 
-        void AddFunction(BackendDispatchFunction function)
+        void AddFunction(const BackendDispatchFunction& function)
         {
-            _functions.push_back(function);
+            _functions.Insert(function);
         }
 
         void AddData(void* data)
         {
-            _data.push_back(data);
+            _data.Insert(data);
         }
 
     private:
+        Memory::Allocator* _allocator;
         Renderer* _renderer;
-        std::vector<BackendDispatchFunction> _functions;
-        std::vector<void*> _data;
+
+        DynamicArray<BackendDispatchFunction> _functions;
+        DynamicArray<void*> _data;
     };
 
     class ScopedMarker

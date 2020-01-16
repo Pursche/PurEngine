@@ -23,7 +23,7 @@ namespace Renderer
 
         ModelHandlerDX12::~ModelHandlerDX12()
         {
-
+            // TODO: Clean up all held resources
         }
 
         ModelID ModelHandlerDX12::LoadModel(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, const ModelDesc& desc)

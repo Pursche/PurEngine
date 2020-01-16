@@ -15,7 +15,7 @@ namespace Renderer
 
         CommandListHandlerDX12::~CommandListHandlerDX12()
         {
-
+            // TODO: Clean up all held resources
         }
 
         CommandListID CommandListHandlerDX12::BeginCommandList(RenderDeviceDX12* device)

@@ -4,8 +4,10 @@
 
 namespace Renderer
 {
-    RenderGraphBuilder::RenderGraphBuilder(Renderer* renderer)
+    RenderGraphBuilder::RenderGraphBuilder(Memory::Allocator* allocator, Renderer* renderer)
         : _renderer(renderer)
+        , _trackedImages(allocator, 32)
+        , _trackedDepthImages(allocator, 32)
     {
 
     }
@@ -92,7 +94,7 @@ namespace Renderer
             i++;
         }
 
-        _trackedImages.push_back(id);
+        _trackedImages.Insert(id);
         return RenderPassResource(i);
     }
 
@@ -111,7 +113,7 @@ namespace Renderer
             i++;
         }
 
-        _trackedDepthImages.push_back(id);
+        _trackedDepthImages.Insert(id);
         return RenderPassResource(i);
     }
 
@@ -130,7 +132,7 @@ namespace Renderer
             i++;
         }
 
-        _trackedImages.push_back(id);
+        _trackedImages.Insert(id);
         return RenderPassMutableResource(i);
     }
 
@@ -149,7 +151,7 @@ namespace Renderer
             i++;
         }
 
-        _trackedDepthImages.push_back(id);
+        _trackedDepthImages.Insert(id);
         return RenderPassMutableResource(i);
     }
 }

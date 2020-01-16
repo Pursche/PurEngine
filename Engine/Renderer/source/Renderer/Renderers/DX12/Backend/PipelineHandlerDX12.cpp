@@ -20,7 +20,7 @@ namespace Renderer
 
         PipelineHandlerDX12::~PipelineHandlerDX12()
         {
-
+            // TODO: Clean up all held resources
         }
 
         GraphicsPipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc)

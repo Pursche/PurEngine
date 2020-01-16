@@ -19,6 +19,7 @@ namespace Renderer
         RendererDX12();
 
         void InitWindow(Window* window) override;
+        void Deinit() override;
 
         // Creation
         ImageID CreateImage(ImageDesc& desc) override;

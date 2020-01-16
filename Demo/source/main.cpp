@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <Core.h>
 
+#include <Memory/StackAllocator.h>
 #include <Utils/Timer.h>
 #include <Window/Window.h>
 
@@ -10,10 +11,16 @@
 #include "Camera.h"
 
 u32 MainRenderLayer = "MainLayer"_h; // _h will compiletime hash the string into a u32
+size_t FrameAllocatorSize = 8 * 1024 * 1024; // 8 MB
 
 INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     PSTR /*lpCmdLine*/, INT nCmdShow)
 {
+    // Enable run-time memory check for debug builds.
+#if defined(DEBUG) | defined(_DEBUG)
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
+
     const int width = 1280;
     const int height = 720;
 
@@ -48,13 +55,15 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     Renderer::DepthImageID mainDepth = renderer->CreateDepthImage(mainDepthDesc);
 
     Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MainRenderLayer);
-
+    
     Renderer::ModelDesc modelDesc;
     modelDesc.path = "Data/models/cube.model";
 
     Renderer::ModelID cubeModel = renderer->LoadModel(modelDesc);
     Renderer::InstanceData cubeInstance;
     cubeInstance.modelMatrix = Matrix(); // Move, rotate etc the model here
+
+    mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
 
     struct ViewConstantBuffer
     {
@@ -97,11 +106,15 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     };
 
     Renderer::ConstantBuffer<ModelConstantBuffer> modelConstantBuffer = renderer->CreateConstantBuffer<ModelConstantBuffer>();
+    Memory::StackAllocator frameAllocator(FrameAllocatorSize);
+    frameAllocator.Init();
 
     Timer timer;
     u32 frameIndex = 0;
     while (true)
     {
+        frameAllocator.Reset(); // Reset the frame allocator at the start of every frame
+
         f32 deltaTime = timer.GetDeltaTime();
         timer.Tick();
         
@@ -111,9 +124,9 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
             mainWindow.ConfirmExit();
             break;
         }
-        mainWindow.Update(deltaTime); // +0.75kb
+        mainWindow.Update(deltaTime);
 
-        camera.Update(deltaTime); // +0.69kb
+        camera.Update(deltaTime);
 
         //oldRenderer.SetViewMatrix(camera.GetViewMatrix().Inverted());
         //oldRenderer.Update(deltaTime);
@@ -123,10 +136,10 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         viewConstantBuffer.Apply(frameIndex);
 
         Renderer::RenderGraphDesc renderGraphDesc;
-        renderGraphDesc.renderer = renderer;
+        renderGraphDesc.allocator = &frameAllocator;
         Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc); // TODO(important): Fix RenderGraph memory allocation, maybe a per-frame allocator?
 
-        mainLayer.RegisterModel(cubeModel, cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
+        //mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
         
         // Depth Prepass
         /*{
@@ -248,9 +261,9 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                     return true; // Return true from setup to enable this pass, return false to disable it
                 },
-                [&](MainPassData& data, Renderer::CommandList& commandList) // Execute
+                [&](MainPassData& /*data*/, Renderer::CommandList& /*commandList*/) // Execute
                 {
-                    Renderer::GraphicsPipelineDesc pipelineDesc;
+                    /*Renderer::GraphicsPipelineDesc pipelineDesc;
                     renderGraph.InitializePipelineDesc(pipelineDesc);
 
                     // Shaders
@@ -346,21 +359,22 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                     presentCommand->window = &mainWindow;
                     presentCommand->image = mainColor;
 
-                //commandList.Execute();
+                //commandList.Execute();*/
             });
         }
 
         renderGraph.Setup();
-        renderGraph.Execute();
+        //renderGraph.Execute();
 
         //renderer->Present(&mainWindow, mainDepth);
         //renderer->Present(&mainWindow, mainColor);
 
         // Reset layers
-        mainLayer.Reset();
+        //mainLayer.Reset();
 
         frameIndex = !frameIndex; // Flip between 0 and 1
     }
 
+    renderer->Deinit();
     return 0;
 }

@@ -14,7 +14,7 @@ namespace Renderer
 
         ImageHandlerDX12::~ImageHandlerDX12()
         {
-
+            // TODO: Clean up all held resources
         }
 
         ImageID ImageHandlerDX12::CreateImage(RenderDeviceDX12* device, const ImageDesc& desc)

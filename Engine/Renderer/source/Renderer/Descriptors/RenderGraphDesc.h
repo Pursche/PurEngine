@@ -2,14 +2,17 @@
 #include <Core.h>
 #include <vector>
 
+namespace Memory
+{
+    class Allocator;
+}
+
 namespace Renderer
 {
     class Renderer;
 
     struct RenderGraphDesc
     {
-        std::string name;
-        std::vector<std::string> shaderPaths;
-        Renderer* renderer;
+        Memory::Allocator* allocator;
     };
 }

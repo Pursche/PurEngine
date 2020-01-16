@@ -13,27 +13,27 @@ void Camera::Update(f32 deltaTime)
     // Movement
     if (GetAsyncKeyState('W'))
     {
-        _viewMatrix.pos += _viewMatrix.at * _movementSpeed * deltaTime;
+        _viewMatrix.pos += _viewMatrix.at * -_movementSpeed * deltaTime;
     }
     if (GetAsyncKeyState('S'))
     {
-        _viewMatrix.pos += _viewMatrix.at * -_movementSpeed * deltaTime;
+        _viewMatrix.pos += _viewMatrix.at * _movementSpeed * deltaTime;
     }
     if (GetAsyncKeyState('A'))
     {
-        _viewMatrix.pos += _viewMatrix.right * -_movementSpeed * deltaTime;
+        _viewMatrix.pos += _viewMatrix.right * _movementSpeed * deltaTime;
     }
     if (GetAsyncKeyState('D'))
     {
-        _viewMatrix.pos += _viewMatrix.right * _movementSpeed * deltaTime;
+        _viewMatrix.pos += _viewMatrix.right * -_movementSpeed * deltaTime;
     }
     if (GetAsyncKeyState(VK_SPACE))
     {
-        _viewMatrix.pos += _viewMatrix.up * _movementSpeed * deltaTime;
+        _viewMatrix.pos += _viewMatrix.up * -_movementSpeed * deltaTime;
     }
     if (GetAsyncKeyState(VK_SHIFT))
     {
-        _viewMatrix.pos += _viewMatrix.up * -_movementSpeed * deltaTime;
+        _viewMatrix.pos += _viewMatrix.up * _movementSpeed * deltaTime;
     }
 
     // Rotation

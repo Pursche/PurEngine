@@ -24,17 +24,19 @@ namespace Renderer
     template <typename PassData>
     class RenderPass : public IRenderPass
     {
+    public:
         typedef std::function<bool(PassData&, RenderGraphBuilder&)> SetupFunction;
         typedef std::function<void(PassData&, CommandList&)> ExecuteFunction;
-
-    private:
-        RenderPass(std::string name, SetupFunction onSetup, ExecuteFunction onExecute)
+    
+        RenderPass(std::string& name, SetupFunction onSetup, ExecuteFunction onExecute)
+            : _name(name)
+            , _onSetup(onSetup)
+            , _onExecute(onExecute)
         {
-            _name = name;
-            _onSetup = onSetup;
-            _onExecute = onExecute;
+
         }
 
+    private:
         bool Setup(RenderGraphBuilder* renderGraphBuilder) override
         {
             return _onSetup(_data, *renderGraphBuilder);
@@ -49,16 +51,10 @@ namespace Renderer
     private:
 
     private:
-        std::string _name;
+        std::string& _name;
         SetupFunction _onSetup;
         ExecuteFunction _onExecute;
 
         PassData _data;
-
-        GraphicsPipelineID _graphicsPipeline = GraphicsPipelineID::Invalid();
-        ComputePipelineID _computePipeline = ComputePipelineID::Invalid();
-        std::vector<RenderLayer*> _renderLayers;
-
-        friend class RenderGraph;
     };
 }

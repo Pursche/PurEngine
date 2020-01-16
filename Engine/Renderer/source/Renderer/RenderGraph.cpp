@@ -7,7 +7,10 @@ namespace Renderer
 {
     bool RenderGraph::Init(RenderGraphDesc& desc)
     {
-        _renderGraphBuilder = new RenderGraphBuilder(desc.renderer);
+        _desc = desc;
+        assert(desc.allocator != nullptr); // You need to set an allocator
+
+        _renderGraphBuilder = Memory::Allocator::New<RenderGraphBuilder>(desc.allocator, desc.allocator, _renderer);
 
         return true;
     }
@@ -28,7 +31,7 @@ namespace Renderer
         {
             if (pass->Setup(_renderGraphBuilder))
             {
-                _executingPasses.push_back(pass);
+                _executingPasses.Insert(pass);
             }
         }
     }
@@ -36,7 +39,7 @@ namespace Renderer
     void RenderGraph::Execute()
     {
         // TODO: Parallel_for this
-        CommandList commandList(_renderer);
+        CommandList commandList(_renderer, _desc.allocator);
         for (IRenderPass* pass : _executingPasses)
         {
             pass->Execute(commandList);

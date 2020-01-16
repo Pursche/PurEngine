@@ -1,7 +1,7 @@
 #pragma once
 #include <Core.h>
 #include <vector>
-#include <Utils/RobinHood.h>
+#include <Containers/RobinHood.h>
 #include <unordered_map>
 #include "InstanceData.h"
 #include "Descriptors/ModelDesc.h"
@@ -12,11 +12,20 @@ namespace Renderer
     class RenderLayer
     {
     public:
-        typedef std::vector<InstanceData> Instances;
+        typedef std::vector<InstanceData*> Instances;
         typedef type_safe::underlying_type<ModelID> _ModelID;
 
-        void RegisterModel(ModelID modelID, InstanceData& instanceData) { _models[static_cast<_ModelID>(modelID)].push_back(instanceData); }
-        void Reset() { _models.clear(); }
+        void RegisterModel(ModelID modelID, InstanceData* instanceData) { _models[static_cast<_ModelID>(modelID)].push_back(instanceData); }
+        void Reset() 
+        {
+            for (auto& model : _models)
+            {
+                auto& instances = model.second;
+                instances.clear();
+            }
+
+            _models.clear(); 
+        }
 
         //robin_hood::unordered_map<_ModelID, Instances>& GetModels() { return _models; }
         std::unordered_map<_ModelID, Instances>& GetModels() { return _models; }

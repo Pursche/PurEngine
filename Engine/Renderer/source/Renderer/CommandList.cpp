@@ -9,11 +9,11 @@ namespace Renderer
         CommandListID commandList = _renderer->BeginCommandList();
 
         // Execute each command
-        for (int i = 0; i < _functions.size(); i++)
+        for (int i = 0; i < _functions.Count(); i++)
         {
             _functions[i](_renderer, commandList, _data[i]);
         }
 
-        //_renderer->EndCommandList(commandList);
+        _renderer->EndCommandList(commandList);
     }
 }

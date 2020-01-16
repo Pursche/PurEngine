@@ -31,6 +31,15 @@ namespace Renderer
         _device->InitWindow(_shaderHandler, _commandListHandler, window);
     }
 
+    void RendererDX12::Deinit()
+    {
+        delete(_imageHandler);
+        delete(_shaderHandler);
+        delete(_modelHandler);
+        delete(_pipelineHandler);
+        delete(_commandListHandler);
+    }
+
     ImageID RendererDX12::CreateImage(ImageDesc& desc)
     {
         return _imageHandler->CreateImage(_device, desc);
