@@ -17,6 +17,19 @@ namespace Renderer
     {
         IDXGIFactory4* RenderDeviceDX12::_dxgiFactory = nullptr;
 
+        RenderDeviceDX12::~RenderDeviceDX12()
+        {
+            _dxgiFactory->Release();
+            SAFE_RELEASE(_device);
+            SAFE_RELEASE(_commandQueue);
+            for (int i = 0; i < FRAME_INDEX_COUNT; i++)
+            {
+                SAFE_RELEASE(_fences[i]);
+                SAFE_RELEASE(_mainDescriptorHeap[i]);
+            }
+            
+        }
+
         void RenderDeviceDX12::Init()
         {
             HRESULT result;

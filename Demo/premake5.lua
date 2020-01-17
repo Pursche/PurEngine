@@ -16,6 +16,8 @@ project (DEMO_NAME)
     links { CORE_NAME, RENDERER_NAME }
     includedirs { "../Engine/%{CORE_NAME}/source", "../Engine/%{RENDERER_NAME}/source"}
 
+    disablewarnings { "4307" } -- Disable C4307: "integral constant overflow" because our compiletime string hashing uses overflow as a feature and we'll want to const the hashed strings
+
     defines { "_CRT_SECURE_NO_WARNINGS", "NOMINMAX" }
 
     filter "configurations:Debug"

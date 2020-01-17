@@ -21,6 +21,8 @@ namespace Renderer
         class RenderDeviceDX12
         {
         public:
+            ~RenderDeviceDX12();
+
             void Init();
             void InitWindow(ShaderHandlerDX12* shaderHandler, CommandListHandlerDX12* commandListHandler, Window*);
 
@@ -40,9 +42,6 @@ namespace Renderer
             static const u32 FRAME_INDEX_COUNT = 2;
             u32 _frameIndex;
             void* _fenceEvent;
-
-            ID3D12GraphicsCommandList* _commandList;
-            ID3D12GraphicsCommandList* _resourceCommandList;
 
             ID3D12Fence* _fences[FRAME_INDEX_COUNT];
             u64 _fenceValues[FRAME_INDEX_COUNT];

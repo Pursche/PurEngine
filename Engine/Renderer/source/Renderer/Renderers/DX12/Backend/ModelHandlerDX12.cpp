@@ -23,7 +23,12 @@ namespace Renderer
 
         ModelHandlerDX12::~ModelHandlerDX12()
         {
-            // TODO: Clean up all held resources
+            for (auto& model : _models)
+            {
+                SAFE_RELEASE(model.indexBuffer);
+                SAFE_RELEASE(model.vertexBuffer);
+            }
+            _models.clear();
         }
 
         ModelID ModelHandlerDX12::LoadModel(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, const ModelDesc& desc)

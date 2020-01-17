@@ -12,6 +12,9 @@
 #include "Backend/SwapChainDX12.h"
 #include <WinPixEventRuntime/pix3.h>
 #include <Utils/StringUtils.h>
+#ifdef _DEBUG
+#include <dxgidebug.h>
+#endif
 
 namespace Renderer
 {
@@ -33,11 +36,22 @@ namespace Renderer
 
     void RendererDX12::Deinit()
     {
+        delete(_device);
         delete(_imageHandler);
         delete(_shaderHandler);
         delete(_modelHandler);
         delete(_pipelineHandler);
         delete(_commandListHandler);
+
+#ifdef _DEBUG
+        IDXGIDebug* dxgiDebug;
+        if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug))))
+        {
+            HRESULT result = dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+            if (!SUCCEEDED(result))
+                assert(false); // We didn't deinitialize all DX12 memory
+        }
+#endif
     }
 
     ImageID RendererDX12::CreateImage(ImageDesc& desc)

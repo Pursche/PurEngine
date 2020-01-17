@@ -20,7 +20,18 @@ namespace Renderer
 
         PipelineHandlerDX12::~PipelineHandlerDX12()
         {
-            // TODO: Clean up all held resources
+            for (auto& pipeline : _graphicsPipelines)
+            {
+                SAFE_RELEASE(pipeline.rootSig);
+                SAFE_RELEASE(pipeline.pso);
+            }
+            for (auto& pipeline : _computePipelines)
+            {
+                SAFE_RELEASE(pipeline.rootSig);
+                SAFE_RELEASE(pipeline.pso);
+            }
+            _graphicsPipelines.clear();
+            _computePipelines.clear();
         }
 
         GraphicsPipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc)

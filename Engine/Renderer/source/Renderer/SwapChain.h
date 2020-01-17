@@ -5,6 +5,6 @@ namespace Renderer
 {
     struct SwapChain
     {
-
+        virtual ~SwapChain() {};
     };
 }

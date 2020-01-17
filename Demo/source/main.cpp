@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <Core.h>
+#include <thread>
 
 #include <Memory/StackAllocator.h>
 #include <Utils/Timer.h>
@@ -10,8 +11,9 @@
 
 #include "Camera.h"
 
-u32 MainRenderLayer = "MainLayer"_h; // _h will compiletime hash the string into a u32
-size_t FrameAllocatorSize = 8 * 1024 * 1024; // 8 MB
+const u32 MAIN_RENDER_LAYER = "MainLayer"_h; // _h will compiletime hash the string into a u32
+const size_t FRAME_ALLOCATOR_SIZE = 8 * 1024 * 1024; // 8 MB
+const u8 TARGET_UPDATE_RATE = 60;
 
 INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     PSTR /*lpCmdLine*/, INT nCmdShow)
@@ -24,7 +26,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     const int width = 1280;
     const int height = 720;
 
-    Window mainWindow(hInstance, nCmdShow, Vector2(width, height));
+    Window* mainWindow = new Window(hInstance, nCmdShow, Vector2(width, height));
 
     /*OldRenderer oldRenderer;
     if (!oldRenderer.Init(&mainWindow, width, height))
@@ -33,7 +35,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     }*/
 
     Renderer::Renderer* renderer = new Renderer::RendererDX12();
-    renderer->InitWindow(&mainWindow);
+    renderer->InitWindow(mainWindow);
 
     Camera camera(Vector3(0,0,10));
 
@@ -54,7 +56,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
     Renderer::DepthImageID mainDepth = renderer->CreateDepthImage(mainDepthDesc);
 
-    Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MainRenderLayer);
+    Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MAIN_RENDER_LAYER);
     
     Renderer::ModelDesc modelDesc;
     modelDesc.path = "Data/models/cube.model";
@@ -106,25 +108,26 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     };
 
     Renderer::ConstantBuffer<ModelConstantBuffer> modelConstantBuffer = renderer->CreateConstantBuffer<ModelConstantBuffer>();
-    Memory::StackAllocator frameAllocator(FrameAllocatorSize);
+    Memory::StackAllocator frameAllocator(FRAME_ALLOCATOR_SIZE);
     frameAllocator.Init();
 
     Timer timer;
+    f32 targetDelta = 1.0f / TARGET_UPDATE_RATE;
     u32 frameIndex = 0;
     while (true)
     {
-        frameAllocator.Reset(); // Reset the frame allocator at the start of every frame
-
         f32 deltaTime = timer.GetDeltaTime();
         timer.Tick();
-        
-        if (mainWindow.WantsToExit())
+
+        frameAllocator.Reset(); // Reset the frame allocator at the start of every frame
+
+        if (mainWindow->WantsToExit())
         {
             //oldRenderer.Cleanup();
-            mainWindow.ConfirmExit();
+            mainWindow->ConfirmExit();
             break;
         }
-        mainWindow.Update(deltaTime);
+        mainWindow->Update(deltaTime);
 
         camera.Update(deltaTime);
 
@@ -364,7 +367,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         }
 
         renderGraph.Setup();
-        //renderGraph.Execute();
+        renderGraph.Execute();
 
         //renderer->Present(&mainWindow, mainDepth);
         //renderer->Present(&mainWindow, mainColor);
@@ -372,9 +375,21 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         // Reset layers
         //mainLayer.Reset();
 
+        // Wait for update rate, this might be an overkill implementation but it has the even update rate I've seen - MPursche
+        for (deltaTime = timer.GetDeltaTime(); deltaTime < targetDelta - 0.0025f; deltaTime = timer.GetDeltaTime())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+
+        for (deltaTime = timer.GetDeltaTime(); deltaTime < targetDelta; deltaTime = timer.GetDeltaTime())
+        {
+            std::this_thread::yield();
+        }
+
         frameIndex = !frameIndex; // Flip between 0 and 1
     }
 
+    delete mainWindow;
     renderer->Deinit();
     return 0;
 }

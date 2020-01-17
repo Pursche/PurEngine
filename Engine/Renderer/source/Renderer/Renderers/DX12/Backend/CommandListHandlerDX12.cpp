@@ -15,7 +15,13 @@ namespace Renderer
 
         CommandListHandlerDX12::~CommandListHandlerDX12()
         {
-            // TODO: Clean up all held resources
+            for (auto& commandList : _commandLists)
+            {
+                SAFE_RELEASE(commandList.commandList);
+                SAFE_RELEASE(commandList.allocator);
+                //SAFE_RELEASE(commandList.fence);
+            }
+            _commandLists.clear();
         }
 
         CommandListID CommandListHandlerDX12::BeginCommandList(RenderDeviceDX12* device)
@@ -80,7 +86,7 @@ namespace Renderer
             return commandList.commandList;
         }
 
-        ID3D12Fence* CommandListHandlerDX12::GetFence(CommandListID id)
+        /*ID3D12Fence* CommandListHandlerDX12::GetFence(CommandListID id)
         {
             using type = type_safe::underlying_type<CommandListID>;
             CommandList& commandList = _commandLists[static_cast<type>(id)];
@@ -102,7 +108,7 @@ namespace Renderer
             CommandList& commandList = _commandLists[static_cast<type>(id)];
 
             commandList.fenceValue = value;
-        }
+        }*/
 
         CommandListID CommandListHandlerDX12::CreateCommandList(RenderDeviceDX12* device)
         {

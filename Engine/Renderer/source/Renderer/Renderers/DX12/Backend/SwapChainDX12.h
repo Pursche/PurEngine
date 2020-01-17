@@ -22,6 +22,19 @@ namespace Renderer
 
             }
 
+            ~SwapChainDX12()
+            {
+                SAFE_RELEASE(swapChain);
+                SAFE_RELEASE(descriptorHeap);
+                for (u32 i = 0; i < bufferCount; i++)
+                {
+                    SAFE_RELEASE(resources[i]);
+                }
+                SAFE_RELEASE(vertexBuffer);
+                SAFE_RELEASE(pso);
+                SAFE_RELEASE(rootSig);
+            }
+
             IDXGISwapChain3* swapChain;
             u32 frameIndex;
             u32 bufferCount;

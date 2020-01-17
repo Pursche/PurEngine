@@ -14,7 +14,20 @@ namespace Renderer
 
         ImageHandlerDX12::~ImageHandlerDX12()
         {
-            // TODO: Clean up all held resources
+            for (auto& image : _images)
+            {
+                SAFE_RELEASE(image.rtvDescriptorHeap);
+                SAFE_RELEASE(image.srvUavDescriptorHeap);
+                SAFE_RELEASE(image.resource);
+            }
+            for (auto& image : _depthImages)
+            {
+                SAFE_RELEASE(image.dsvDescriptorHeap);
+                SAFE_RELEASE(image.srvDescriptorHeap);
+                SAFE_RELEASE(image.resource);
+            }
+            _images.clear();
+            _depthImages.clear();
         }
 
         ImageID ImageHandlerDX12::CreateImage(RenderDeviceDX12* device, const ImageDesc& desc)
