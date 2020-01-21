@@ -11,23 +11,38 @@
 #include <cassert>
 #include <atlbase.h>
 
+#if defined(_DEBUG)
+#include <dxgidebug.h>
+#endif
+
 namespace Renderer
 {
     namespace Backend
     {
-        IDXGIFactory4* RenderDeviceDX12::_dxgiFactory = nullptr;
+        Microsoft::WRL::ComPtr<IDXGIFactory4> RenderDeviceDX12::_dxgiFactory = nullptr;
 
         RenderDeviceDX12::~RenderDeviceDX12()
         {
-            _dxgiFactory->Release();
-            SAFE_RELEASE(_device);
-            SAFE_RELEASE(_commandQueue);
+            _dxgiFactory.Reset();
+            _device.Reset();
+            _commandQueue.Reset();
             for (int i = 0; i < FRAME_INDEX_COUNT; i++)
             {
-                SAFE_RELEASE(_fences[i]);
-                SAFE_RELEASE(_mainDescriptorHeap[i]);
+                _fences[i].Reset();
+                _mainDescriptorHeap[i].Reset();
             }
-            
+
+            for (ConstantBufferBackend* cbBackend : _constantBufferBackends)
+            {
+                delete cbBackend;
+            }
+            _constantBufferBackends.clear();
+
+            for (SwapChainDX12* swapChain : _swapChains)
+            {
+                delete swapChain;
+            }
+            _swapChains.clear();
         }
 
         void RenderDeviceDX12::Init()
@@ -41,12 +56,12 @@ namespace Renderer
                 InitOnce();
             }
 
-            IDXGIAdapter1* adapter; // Adapters are the physical graphics card
+            Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter; // Adapters are the physical graphics card
             int adapterIndex = 0;
             bool adapterFound = false;
 
             // -- Find first hardware gpu that supports d3d12 --
-            while (_dxgiFactory->EnumAdapters1(adapterIndex, &adapter) != DXGI_ERROR_NOT_FOUND)
+            while (_dxgiFactory->EnumAdapters1(adapterIndex, adapter.ReleaseAndGetAddressOf()) != DXGI_ERROR_NOT_FOUND)
             {
                 DXGI_ADAPTER_DESC1 desc;
                 adapter->GetDesc1(&desc);
@@ -59,7 +74,7 @@ namespace Renderer
                 }
 
                 // We want a device that is compatible with DX12 (feature level 11 or higher)
-                result = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr);
+                result = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, _uuidof(ID3D12Device), nullptr);
                 if (SUCCEEDED(result))
                 {
                     adapterFound = true;
@@ -71,13 +86,13 @@ namespace Renderer
             assert(adapterFound); // If we could not find a DX12 worthy adapter that's pretty bad.
 
             // -- Create the Device --
-            result = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&_device));
+            result = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(_device.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create device
 
             // -- Create the Command Queue --
             D3D12_COMMAND_QUEUE_DESC cqDesc = {}; // we will be using all the default values
 
-            result = _device->CreateCommandQueue(&cqDesc, IID_PPV_ARGS(&_commandQueue)); // create the command queue
+            result = _device->CreateCommandQueue(&cqDesc, IID_PPV_ARGS(_commandQueue.ReleaseAndGetAddressOf())); // create the command queue
             assert(SUCCEEDED(result)); // Failed to create command queue
 
             // -- Create a Fence & Fence Event -- //
@@ -85,7 +100,7 @@ namespace Renderer
             // create the fences
             for (int i = 0; i < FRAME_INDEX_COUNT; i++)
             {
-                result = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&_fences[i]));
+                result = _device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(_fences[i].ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to create fence
 
                 _fenceValues[i] = 0; // set the initial fence value to 0
@@ -102,9 +117,24 @@ namespace Renderer
                 heapDesc.NumDescriptors = 1;
                 heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
                 heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-                result = _device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&_mainDescriptorHeap[i]));
+                result = _device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(_mainDescriptorHeap[i].ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to create main descriptor heap
             }
+        }
+
+        void RenderDeviceDX12::FlushGPU()
+        {
+            for (int i = 0; i < FRAME_INDEX_COUNT; i++)
+            {
+                uint64_t fenceValueForSignal = ++_fenceValues[i];
+                _commandQueue->Signal(_fences[i].Get(), fenceValueForSignal);
+                if (_fences[i]->GetCompletedValue() < _fenceValues[i])
+                {
+                    _fences[i]->SetEventOnCompletion(fenceValueForSignal, _fenceEvent);
+                    WaitForSingleObject(_fenceEvent, INFINITE);
+                }
+            }
+            _frameIndex = 0;
         }
 
         void RenderDeviceDX12::InitOnce()
@@ -114,18 +144,24 @@ namespace Renderer
 #if defined(_DEBUG)
             // Enable the debug layer (requires the Graphics Tools "optional feature").
             // NOTE: Enabling the debug layer after device creation will invalidate the active device.
+            
+            Microsoft::WRL::ComPtr<ID3D12Debug> debugController;
+            if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(debugController.ReleaseAndGetAddressOf()))))
             {
-                Microsoft::WRL::ComPtr<ID3D12Debug> debugController;
-                if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
-                {
-                    debugController->EnableDebugLayer();
+                debugController->EnableDebugLayer();
 
-                    // Enable additional debug layers.
-                    dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
-                }
+                // Enable additional debug layers.
+                dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+            }
+            
+            Microsoft::WRL::ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
+            if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiInfoQueue.GetAddressOf()))))
+            {
+                dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
+                dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
             }
 #endif
-            HRESULT result = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&_dxgiFactory));
+            HRESULT result = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(_dxgiFactory.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create DXGI factory
         }
 
@@ -140,6 +176,7 @@ namespace Renderer
             // -- Create our Swap Chain abstraction and give it to the Window
             SwapChainDX12* swapChain = new SwapChainDX12(this);
             window->SetSwapChain(swapChain);
+            _swapChains.push_back(swapChain);
             
             // -- Create the Swap Chain --
             DXGI_MODE_DESC backBufferDesc = {};
@@ -160,10 +197,10 @@ namespace Renderer
             swapChainDesc.SampleDesc = sampleDesc;
             swapChainDesc.Windowed = !window->IsFullScreen();
 
-            IDXGISwapChain* tempSwapChain;
-            _dxgiFactory->CreateSwapChain(_commandQueue, &swapChainDesc, &tempSwapChain);
+            Microsoft::WRL::ComPtr<IDXGISwapChain> tempSwapChain;
+            _dxgiFactory->CreateSwapChain(_commandQueue.Get(), &swapChainDesc, tempSwapChain.ReleaseAndGetAddressOf());
 
-            swapChain->swapChain = static_cast<IDXGISwapChain3*>(tempSwapChain);
+            swapChain->swapChain = static_cast<IDXGISwapChain3*>(tempSwapChain.Get()); // Won't work...
 
             window->SetSwapChain(swapChain);
             swapChain->frameIndex = swapChain->swapChain->GetCurrentBackBufferIndex();
@@ -175,7 +212,7 @@ namespace Renderer
             rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
             rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-            result = _device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&swapChain->descriptorHeap));
+            result = _device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(swapChain->descriptorHeap.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create RTV Descriptor Heap
 
             result = swapChain->descriptorHeap->SetName(L"Window Descriptor Heap");
@@ -188,7 +225,7 @@ namespace Renderer
             {
                 // first we get the n'th buffer in the swap chain and store it in the n'th
                // position of our ID3D12Resource array
-                result = swapChain->swapChain->GetBuffer(i, IID_PPV_ARGS(&swapChain->resources[i]));
+                result = swapChain->swapChain->GetBuffer(i, IID_PPV_ARGS(swapChain->resources[i].ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to get RTV from swapchain
 
                 result = swapChain->resources[i]->SetName(L"Window Backbuffer " + i);
@@ -198,7 +235,7 @@ namespace Renderer
                 swapChain->rtvs[i].Offset(i, swapChain->descriptorSize);
 
                 // the we "create" a render target view which binds the swap chain buffer (ID3D12Resource[n]) to the rtv handle
-                _device->CreateRenderTargetView(swapChain->resources[i], nullptr, swapChain->rtvs[i]);
+                _device->CreateRenderTargetView(swapChain->resources[i].Get(), nullptr, swapChain->rtvs[i]);
             }
 
             // -- Create present root descriptor --
@@ -246,11 +283,11 @@ namespace Renderer
                 D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS
             );
 
-            ID3DBlob* signature;
-            result = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
+            Microsoft::WRL::ComPtr<ID3DBlob> signature;
+            result = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, signature.ReleaseAndGetAddressOf(), nullptr);
             assert(SUCCEEDED(result)); // Failed to serialize root signature
 
-            result = _device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&swapChain->rootSig));
+            result = _device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(swapChain->rootSig.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to serialize root signature
 
             // -- Create input layout --
@@ -276,7 +313,7 @@ namespace Renderer
             // -- create a pipeline state object (PSO) --
             D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
             psoDesc.InputLayout = inputLayoutDesc; // the structure describing our input layout
-            psoDesc.pRootSignature = swapChain->rootSig; // the root signature that describes the input data this pso needs
+            psoDesc.pRootSignature = swapChain->rootSig.Get(); // the root signature that describes the input data this pso needs
             psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; // type of topology we are drawing
             psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // format of the render target
             psoDesc.SampleDesc = sampleDesc; // must be the same sample description as the swapchain and depth/stencil buffer
@@ -302,7 +339,7 @@ namespace Renderer
             psoDesc.PS = *pixelShader;
             
             // create the pso
-            result = _device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&swapChain->pso));
+            result = _device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(swapChain->pso.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create PSO
 
             struct Vertex
@@ -334,20 +371,20 @@ namespace Renderer
                 &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize),
                 D3D12_RESOURCE_STATE_COPY_DEST,
                 nullptr,
-                IID_PPV_ARGS(&swapChain->vertexBuffer));
+                IID_PPV_ARGS(swapChain->vertexBuffer.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create Vertex Buffer
 
             result = swapChain->vertexBuffer->SetName(L"SwapChain Vertex Buffer Resource Heap");
             assert(SUCCEEDED(result)); // Failed to name Vertex Buffer
 
-            ID3D12Resource* vBufferUploadHeap;
+            Microsoft::WRL::ComPtr<ID3D12Resource> vBufferUploadHeap;
             result = _device->CreateCommittedResource(
                 &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
                 D3D12_HEAP_FLAG_NONE,
                 &CD3DX12_RESOURCE_DESC::Buffer(vBufferSize),
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr,
-                IID_PPV_ARGS(&vBufferUploadHeap));
+                IID_PPV_ARGS(vBufferUploadHeap.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create Vertex Upload Buffer
 
             result = vBufferUploadHeap->SetName(L"SwapChain Vertex Buffer Upload Resource Heap");
@@ -362,10 +399,10 @@ namespace Renderer
             CommandListID commandListID = commandListHandler->BeginCommandList(this);
             ID3D12GraphicsCommandList* commandList = commandListHandler->GetCommandList(commandListID);
 
-            UpdateSubresources(commandList, swapChain->vertexBuffer, vBufferUploadHeap, 0, 0, 1, &vertexData);
+            UpdateSubresources(commandList, swapChain->vertexBuffer.Get(), vBufferUploadHeap.Get(), 0, 0, 1, &vertexData);
 
             // transition the vertex buffer data from copy destination state to vertex buffer state
-            commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(swapChain->vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+            commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(swapChain->vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
             commandListHandler->EndCommandList(this, commandListID);
 
@@ -378,6 +415,7 @@ namespace Renderer
         Backend::ConstantBufferBackend* RenderDeviceDX12::CreateConstantBufferBackend(size_t size)
         {
             Backend::ConstantBufferBackendDX12* cbBackend = new Backend::ConstantBufferBackendDX12();
+            _constantBufferBackends.push_back(cbBackend);
 
             for (int i = 0; i < Backend::ConstantBufferBackendDX12::FRAME_BUFFER_COUNT; ++i)
             {
@@ -387,7 +425,7 @@ namespace Renderer
                     &CD3DX12_RESOURCE_DESC::Buffer(1024 * 64), // size of the resource heap. Must be a multiple of 64KB for single-textures and constant buffers
                     D3D12_RESOURCE_STATE_GENERIC_READ, // will be data that is read from so we keep it in the generic read state
                     nullptr, // we do not have use an optimized clear value for constant buffers
-                    IID_PPV_ARGS(&cbBackend->uploadHeap[i]));
+                    IID_PPV_ARGS(cbBackend->uploadHeap[i].ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Could not create commited resource for the Constant Buffer
 
                 result = cbBackend->uploadHeap[i]->SetName(L"Constant Buffer Upload Resource Heap");

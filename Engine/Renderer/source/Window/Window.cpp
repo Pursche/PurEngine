@@ -18,7 +18,7 @@ Window::Window(HINSTANCE hInstance, int showWnd, Vector2 windowSize, bool fullSc
 
 Window::~Window()
 {
-    delete _swapChain;
+    // Don't delete the swapchain, the renderer will delete it
 }
 
 // Static WndProc

@@ -22,13 +22,13 @@ namespace Renderer
         {
             for (auto& pipeline : _graphicsPipelines)
             {
-                SAFE_RELEASE(pipeline.rootSig);
-                SAFE_RELEASE(pipeline.pso);
+                pipeline.rootSig.Reset();
+                pipeline.pso.Reset();
             }
             for (auto& pipeline : _computePipelines)
             {
-                SAFE_RELEASE(pipeline.rootSig);
-                SAFE_RELEASE(pipeline.pso);
+                pipeline.rootSig.Reset();
+                pipeline.pso.Reset();
             }
             _graphicsPipelines.clear();
             _computePipelines.clear();
@@ -115,11 +115,11 @@ namespace Renderer
                 CalculateRootSigFlags(rootParameters)
             );
 
-            ID3DBlob* signature;
-            result = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, nullptr);
+            Microsoft::WRL::ComPtr<ID3DBlob> signature;
+            result = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, signature.ReleaseAndGetAddressOf(), nullptr);
             assert(SUCCEEDED(result)); // Failed to serialize root signature
 
-            result = device->_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&pipeline.rootSig));
+            result = device->_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(pipeline.rootSig.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to serialize root signature
 
             // -- Create input layout --
@@ -153,7 +153,7 @@ namespace Renderer
             D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 
             // Bind Shaders
-            psoDesc.pRootSignature = pipeline.rootSig; // the root signature that describes the input data this pso needs
+            psoDesc.pRootSignature = pipeline.rootSig.Get(); // the root signature that describes the input data this pso needs
 
             if (desc.states.vertexShader != VertexShaderID::Invalid())
                 psoDesc.VS = *static_cast<D3D12_SHADER_BYTECODE*>(shaderHandler->GetBytecode(desc.states.vertexShader));
@@ -197,7 +197,7 @@ namespace Renderer
             // TODO(maybe): psoDesc.Flags;
 
             // create the pso
-            result = device->_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipeline.pso));
+            result = device->_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(pipeline.pso.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create PSO
 
             _graphicsPipelines.push_back(pipeline);

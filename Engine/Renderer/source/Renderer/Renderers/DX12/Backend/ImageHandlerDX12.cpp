@@ -16,15 +16,15 @@ namespace Renderer
         {
             for (auto& image : _images)
             {
-                SAFE_RELEASE(image.rtvDescriptorHeap);
-                SAFE_RELEASE(image.srvUavDescriptorHeap);
-                SAFE_RELEASE(image.resource);
+                image.rtvDescriptorHeap.Reset();
+                image.srvUavDescriptorHeap.Reset();
+                image.resource.Reset();
             }
             for (auto& image : _depthImages)
             {
-                SAFE_RELEASE(image.dsvDescriptorHeap);
-                SAFE_RELEASE(image.srvDescriptorHeap);
-                SAFE_RELEASE(image.resource);
+                image.dsvDescriptorHeap.Reset();
+                image.srvDescriptorHeap.Reset();
+                image.resource.Reset();
             }
             _images.clear();
             _depthImages.clear();
@@ -68,7 +68,7 @@ namespace Renderer
             D3D12_CLEAR_VALUE clearValue = { format, { desc.clearColor.x, desc.clearColor.y, desc.clearColor.z, desc.clearColor.w } };
 
             HRESULT result = device->_device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
-                &resourceDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(&image.resource));
+                &resourceDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(image.resource.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create commited resource
 
             {
@@ -85,7 +85,7 @@ namespace Renderer
                 rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
                 rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-                result = device->_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&image.rtvDescriptorHeap));
+                result = device->_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(image.rtvDescriptorHeap.ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to create RTV descriptor heap
 
                 {
@@ -98,7 +98,7 @@ namespace Renderer
 
             // Create RTV
             image.rtv = image.rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            device->_device->CreateRenderTargetView(image.resource, nullptr, image.rtv);
+            device->_device->CreateRenderTargetView(image.resource.Get(), nullptr, image.rtv);
 
             // Create SRV/UAV Descriptor heap TODO: Figure out a way to manage and combine descriptor heaps since it should cache better
             {
@@ -107,7 +107,7 @@ namespace Renderer
                 srvUavHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
                 srvUavHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-                result = device->_device->CreateDescriptorHeap(&srvUavHeapDesc, IID_PPV_ARGS(&image.srvUavDescriptorHeap));
+                result = device->_device->CreateDescriptorHeap(&srvUavHeapDesc, IID_PPV_ARGS(image.srvUavDescriptorHeap.ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to create SRV/UAV descriptor heap
 
                 {
@@ -122,14 +122,14 @@ namespace Renderer
 
             // Create SRV
             image.srv = image.srvUavDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            device->_device->CreateShaderResourceView(image.resource, nullptr, image.srv); // TODO: Unsure if this works, do we need a descriptor as well?
+            device->_device->CreateShaderResourceView(image.resource.Get(), nullptr, image.srv); // TODO: Unsure if this works, do we need a descriptor as well?
 
             // Create UAV
             image.uav = image.srvUavDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             
             image.uav.ptr += srvUavDescriptorSize;
             
-            device->_device->CreateUnorderedAccessView(image.resource, nullptr, nullptr, image.uav); // TODO: Unsure if this works, do we need a descriptor as well? What about counter resource?
+            device->_device->CreateUnorderedAccessView(image.resource.Get(), nullptr, nullptr, image.uav); // TODO: Unsure if this works, do we need a descriptor as well? What about counter resource?
 
             _images.push_back(image);
 
@@ -168,7 +168,7 @@ namespace Renderer
             clearValue.DepthStencil.Stencil = desc.stencilClearValue;
 
             HRESULT result = device->_device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,
-                &resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&image.resource));
+                &resourceDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(image.resource.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create commited resource
 
             {
@@ -185,7 +185,7 @@ namespace Renderer
                 dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
                 dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 
-                result = device->_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&image.dsvDescriptorHeap));
+                result = device->_device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(image.dsvDescriptorHeap.ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to create DSV descriptor heap
 
                 {
@@ -213,7 +213,7 @@ namespace Renderer
             dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
 
             image.dsv = image.dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            device->_device->CreateDepthStencilView(image.resource, &dsvDesc, image.dsv);
+            device->_device->CreateDepthStencilView(image.resource.Get(), &dsvDesc, image.dsv);
 
             // Create SRV Descriptor heap TODO: Figure out a way to manage and combine descriptor heaps since it should cache better
             {
@@ -222,7 +222,7 @@ namespace Renderer
                 srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
                 srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
-                result = device->_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&image.srvDescriptorHeap));
+                result = device->_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(image.srvDescriptorHeap.ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to create SRV descriptor heap
 
                 {
@@ -250,7 +250,7 @@ namespace Renderer
             srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
             image.srv = image.srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            device->_device->CreateShaderResourceView(image.resource, &srvDesc, image.srv); // TODO: Unsure if this works, do we need a descriptor as well?
+            device->_device->CreateShaderResourceView(image.resource.Get(), &srvDesc, image.srv);
 
             _depthImages.push_back(image);
 
@@ -299,7 +299,7 @@ namespace Renderer
 
             // Lets make sure this id exists
             assert(_images.size() > static_cast<type>(id));
-            return _images[static_cast<type>(id)].resource;
+            return _images[static_cast<type>(id)].resource.Get();
         }
 
         ID3D12Resource* ImageHandlerDX12::GetResource(const DepthImageID id)
@@ -308,7 +308,7 @@ namespace Renderer
 
             // Lets make sure this id exists
             assert(_depthImages.size() > static_cast<type>(id));
-            return _depthImages[static_cast<type>(id)].resource;
+            return _depthImages[static_cast<type>(id)].resource.Get();
         }
 
         D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetRTV(const ImageID id)
@@ -326,7 +326,7 @@ namespace Renderer
         ID3D12DescriptorHeap* ImageHandlerDX12::GetSRVDescriptorHeap(const ImageID id)
         {
             using type = type_safe::underlying_type<ImageID>;
-            return _images[static_cast<type>(id)].srvUavDescriptorHeap;
+            return _images[static_cast<type>(id)].srvUavDescriptorHeap.Get();
         }
 
         D3D12_CPU_DESCRIPTOR_HANDLE ImageHandlerDX12::GetUAV(const ImageID id)
@@ -350,7 +350,7 @@ namespace Renderer
         ID3D12DescriptorHeap* ImageHandlerDX12::GetSRVDescriptorHeap(const DepthImageID id)
         {
             using type = type_safe::underlying_type<DepthImageID>;
-            return _depthImages[static_cast<type>(id)].srvDescriptorHeap;
+            return _depthImages[static_cast<type>(id)].srvDescriptorHeap.Get();
         }
 
         DXGI_FORMAT ImageHandlerDX12::ToDXGIFormat(ImageFormat format)

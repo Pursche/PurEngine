@@ -25,8 +25,8 @@ namespace Renderer
         {
             for (auto& model : _models)
             {
-                SAFE_RELEASE(model.indexBuffer);
-                SAFE_RELEASE(model.vertexBuffer);
+                model.indexBuffer.Reset();
+                model.vertexBuffer.Reset();
             }
             _models.clear();
         }
@@ -53,14 +53,14 @@ namespace Renderer
         {
             using type = type_safe::underlying_type<ModelID>;
 
-            return _models[static_cast<type>(id)].vertexBufferView;
+            return &_models[static_cast<type>(id)].vertexBufferView;
         }
 
         D3D12_INDEX_BUFFER_VIEW* ModelHandlerDX12::GetIndexBufferView(ModelID id)
         {
             using type = type_safe::underlying_type<ModelID>;
 
-            return _models[static_cast<type>(id)].indexBufferView;
+            return &_models[static_cast<type>(id)].indexBufferView;
         }
 
         u32 ModelHandlerDX12::GetNumIndices(ModelID id)
@@ -104,6 +104,9 @@ namespace Renderer
 
             HRESULT result;
 
+            Microsoft::WRL::ComPtr<ID3D12Resource> vertexBufferUploadHeap;
+            Microsoft::WRL::ComPtr<ID3D12Resource> indexBufferUploadHeap;
+
             // -- VERTEX BUFFER --
             size_t vertexBufferSize = data.vertices.size() * sizeof(Vertex);
             {
@@ -114,7 +117,7 @@ namespace Renderer
                     &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
                     D3D12_RESOURCE_STATE_COPY_DEST, // We will start this heap in the copy destination state since we will copy data into this heap
                     nullptr,
-                    IID_PPV_ARGS(&model.vertexBuffer)
+                    IID_PPV_ARGS(model.vertexBuffer.ReleaseAndGetAddressOf())
                 );
                 assert(SUCCEEDED(result)); // Failed to create vertex buffer heap
 
@@ -122,14 +125,13 @@ namespace Renderer
                 assert(SUCCEEDED(result)); // Failed to name vertex buffer heap
 
                 // Create upload buffer
-                ID3D12Resource* vertexBufferUploadHeap;
                 result = device->_device->CreateCommittedResource(
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
                     D3D12_HEAP_FLAG_NONE,
                     &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize),
                     D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
                     nullptr,
-                    IID_PPV_ARGS(&vertexBufferUploadHeap));
+                    IID_PPV_ARGS(vertexBufferUploadHeap.ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Faiuled to create vertex upload buffer heap
 
                 result = vertexBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
@@ -142,10 +144,10 @@ namespace Renderer
                 vertexData.SlicePitch = vertexBufferSize;
 
                 // Copy data from upload buffer to vertex buffer
-                UpdateSubresources(commandList, model.vertexBuffer, vertexBufferUploadHeap, 0, 0, 1, &vertexData);
+                UpdateSubresources(commandList, model.vertexBuffer.Get(), vertexBufferUploadHeap.Get(), 0, 0, 1, &vertexData);
 
                 // Transition the vertex buffer from copy destination state to vertex buffer state
-                commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.vertexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+                commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.vertexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
             }
 
             // -- INDEX BUFFER --
@@ -158,21 +160,20 @@ namespace Renderer
                     &CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
                     D3D12_RESOURCE_STATE_COPY_DEST, // we will start this heap in the copy destination state since we will copy data from the upload heap to this heap
                     nullptr,
-                    IID_PPV_ARGS(&model.indexBuffer));
+                    IID_PPV_ARGS(model.indexBuffer.ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to create index buffer
 
                 result = model.indexBuffer->SetName(L"Index Buffer Resource Heap");
                 assert(SUCCEEDED(result)); // Failed to name index buffer
 
                 // Create upload buffer
-                ID3D12Resource* indexBufferUploadHeap;
                 result = device->_device->CreateCommittedResource(
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
                     D3D12_HEAP_FLAG_NONE,
                     &CD3DX12_RESOURCE_DESC::Buffer(indexBufferSize),
                     D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
                     nullptr,
-                    IID_PPV_ARGS(&indexBufferUploadHeap));
+                    IID_PPV_ARGS(indexBufferUploadHeap.ReleaseAndGetAddressOf()));
                 assert(SUCCEEDED(result)); // Failed to create index buffer upload heap
 
                 result = indexBufferUploadHeap->SetName(L"Vertex Buffer Upload Resource Heap");
@@ -185,23 +186,21 @@ namespace Renderer
                 indexData.SlicePitch = indexBufferSize; // also the size of our triangle index data
 
                 // Copy data from upload buffer to index buffer
-                UpdateSubresources(commandList, model.indexBuffer, indexBufferUploadHeap, 0, 0, 1, &indexData);
+                UpdateSubresources(commandList, model.indexBuffer.Get(), indexBufferUploadHeap.Get(), 0, 0, 1, &indexData);
 
                 // Transition the index buffer from copy destination state to index buffer state
-                commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.indexBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+                commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(model.indexBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
             }
 
             // Create a vertex buffer view
-            model.vertexBufferView = new D3D12_VERTEX_BUFFER_VIEW();
-            model.vertexBufferView->BufferLocation = model.vertexBuffer->GetGPUVirtualAddress();
-            model.vertexBufferView->StrideInBytes = sizeof(Vertex);
-            model.vertexBufferView->SizeInBytes = (UINT)vertexBufferSize;
+            model.vertexBufferView.BufferLocation = model.vertexBuffer->GetGPUVirtualAddress();
+            model.vertexBufferView.StrideInBytes = sizeof(Vertex);
+            model.vertexBufferView.SizeInBytes = (UINT)vertexBufferSize;
 
-            // Create a index buffer view
-            model.indexBufferView = new D3D12_INDEX_BUFFER_VIEW();
-            model.indexBufferView->BufferLocation = model.indexBuffer->GetGPUVirtualAddress();
-            model.indexBufferView->Format = DXGI_FORMAT_R32_UINT;
-            model.indexBufferView->SizeInBytes = (UINT)indexBufferSize;
+            // Create a index buffer view;
+            model.indexBufferView.BufferLocation = model.indexBuffer->GetGPUVirtualAddress();
+            model.indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+            model.indexBufferView.SizeInBytes = (UINT)indexBufferSize;
 
             // Set number of indices
             model.numIndices = static_cast<u32>(data.indices.size());

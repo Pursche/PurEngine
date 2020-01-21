@@ -29,11 +29,11 @@ namespace Renderer
             const GraphicsPipelineDesc& GetDescriptor(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].desc; }
             const ComputePipelineDesc& GetDescriptor(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].desc; }
 
-            ID3D12PipelineState* GetPSO(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].pso; }
-            ID3D12PipelineState* GetPSO(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].pso; }
+            ID3D12PipelineState* GetPSO(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].pso.Get(); }
+            ID3D12PipelineState* GetPSO(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].pso.Get(); }
 
-            ID3D12RootSignature* GetRootSignature(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].rootSig; }
-            ID3D12RootSignature* GetRootSignature(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].rootSig; }
+            ID3D12RootSignature* GetRootSignature(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].rootSig.Get(); }
+            ID3D12RootSignature* GetRootSignature(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].rootSig.Get(); }
 
         private:
             struct GraphicsPipeline
@@ -41,8 +41,8 @@ namespace Renderer
                 GraphicsPipelineDesc desc;
                 u64 cacheDescHash;
 
-                ID3D12PipelineState* pso = nullptr;
-                ID3D12RootSignature* rootSig = nullptr;
+                Microsoft::WRL::ComPtr<ID3D12PipelineState> pso = nullptr;
+                Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSig = nullptr;
             };
             struct GraphicsPipelineCacheDesc
             {
@@ -57,8 +57,8 @@ namespace Renderer
                 ComputePipelineDesc desc;
                 u64 cacheDescHash;
 
-                ID3D12PipelineState* pso = nullptr;
-                ID3D12RootSignature* rootSig = nullptr;
+                Microsoft::WRL::ComPtr<ID3D12PipelineState> pso = nullptr;
+                Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSig = nullptr;
             };
 
         private:

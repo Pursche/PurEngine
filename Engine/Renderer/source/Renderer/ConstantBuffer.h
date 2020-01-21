@@ -6,6 +6,7 @@ namespace Renderer
     {
         struct ConstantBufferBackend
         {
+            virtual ~ConstantBufferBackend() {}
             virtual void Apply(u32 frameIndex, void* data, size_t size) = 0;
             virtual void* GetGPUResource(u32 frameIndex) = 0;
         };

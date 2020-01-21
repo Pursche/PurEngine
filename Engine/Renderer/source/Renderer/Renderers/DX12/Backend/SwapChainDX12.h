@@ -24,34 +24,34 @@ namespace Renderer
 
             ~SwapChainDX12()
             {
-                SAFE_RELEASE(swapChain);
-                SAFE_RELEASE(descriptorHeap);
+                swapChain.Reset();
+                descriptorHeap.Reset();
                 for (u32 i = 0; i < bufferCount; i++)
                 {
-                    SAFE_RELEASE(resources[i]);
+                    resources[i].Reset();
                 }
-                SAFE_RELEASE(vertexBuffer);
-                SAFE_RELEASE(pso);
-                SAFE_RELEASE(rootSig);
+                vertexBuffer.Reset();
+                pso.Reset();
+                rootSig.Reset();
             }
 
-            IDXGISwapChain3* swapChain;
+            Microsoft::WRL::ComPtr<IDXGISwapChain3> swapChain;
             u32 frameIndex;
             u32 bufferCount;
 
             RenderDeviceDX12* renderDevice;
-            ID3D12DescriptorHeap* descriptorHeap;
+            Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap;
             u32 descriptorSize;
 
-            ID3D12Resource* resources[3];
+            Microsoft::WRL::ComPtr<ID3D12Resource> resources[3];
             CD3DX12_CPU_DESCRIPTOR_HANDLE rtvs[3];
 
-            ID3D12Resource* vertexBuffer = nullptr;
+            Microsoft::WRL::ComPtr<ID3D12Resource> vertexBuffer;
             D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
 
 
-            ID3D12PipelineState* pso = nullptr;
-            ID3D12RootSignature* rootSig = nullptr;
+            Microsoft::WRL::ComPtr<ID3D12PipelineState> pso;
+            Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSig;
         };
     }
 }

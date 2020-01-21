@@ -11,6 +11,7 @@
 #include "../../../Window/Window.h"
 #include "Backend/SwapChainDX12.h"
 #include <WinPixEventRuntime/pix3.h>
+#include <wrl/client.h>
 #include <Utils/StringUtils.h>
 #ifdef _DEBUG
 #include <dxgidebug.h>
@@ -36,6 +37,8 @@ namespace Renderer
 
     void RendererDX12::Deinit()
     {
+        _device->FlushGPU(); // Make sure it has finished rendering
+
         delete(_device);
         delete(_imageHandler);
         delete(_shaderHandler);
@@ -44,12 +47,10 @@ namespace Renderer
         delete(_commandListHandler);
 
 #ifdef _DEBUG
-        IDXGIDebug* dxgiDebug;
-        if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug))))
+        Microsoft::WRL::ComPtr<IDXGIDebug1> dxgiDebug;
+        if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(dxgiDebug.ReleaseAndGetAddressOf()))))
         {
-            HRESULT result = dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
-            if (!SUCCEEDED(result))
-                assert(false); // We didn't deinitialize all DX12 memory
+            dxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_FLAGS(DXGI_DEBUG_RLO_SUMMARY | DXGI_DEBUG_RLO_IGNORE_INTERNAL));
         }
 #endif
     }
@@ -280,7 +281,7 @@ namespace Renderer
         u32 frameIndex = swapChain->frameIndex;
 
         // Transition backbuffer to RenderTarget
-        ID3D12Resource* resource = swapChain->resources[frameIndex];
+        ID3D12Resource* resource = swapChain->resources[frameIndex].Get();
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
         // Transition image to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
@@ -288,8 +289,8 @@ namespace Renderer
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 
         // Set PSO
-        commandList->SetPipelineState(swapChain->pso);
-        commandList->SetGraphicsRootSignature(swapChain->rootSig);
+        commandList->SetPipelineState(swapChain->pso.Get());
+        commandList->SetGraphicsRootSignature(swapChain->rootSig.Get());
 
         // Set SRV descriptor heap
         ID3D12DescriptorHeap* descriptorHeaps[] = { _imageHandler->GetSRVDescriptorHeap(image) };
@@ -350,7 +351,7 @@ namespace Renderer
         u32 frameIndex = swapChain->frameIndex;
 
         // Transition backbuffer to RenderTarget
-        ID3D12Resource* resource = swapChain->resources[frameIndex];
+        ID3D12Resource* resource = swapChain->resources[frameIndex].Get();
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
         // Transition image to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
@@ -358,8 +359,8 @@ namespace Renderer
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 
         // Set PSO
-        commandList->SetPipelineState(swapChain->pso);
-        commandList->SetGraphicsRootSignature(swapChain->rootSig);
+        commandList->SetPipelineState(swapChain->pso.Get());
+        commandList->SetGraphicsRootSignature(swapChain->rootSig.Get());
 
         // Set SRV descriptor heap
         ID3D12DescriptorHeap* descriptorHeaps[] = { _imageHandler->GetSRVDescriptorHeap(image) };
@@ -406,7 +407,7 @@ namespace Renderer
         u32 frameIndex = swapChain->frameIndex;
 
         // Transition backbuffer to RenderTarget
-        ID3D12Resource* resource = swapChain->resources[frameIndex];
+        ID3D12Resource* resource = swapChain->resources[frameIndex].Get();
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
         // Transition image to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
@@ -414,8 +415,8 @@ namespace Renderer
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 
         // Set PSO
-        commandList->SetPipelineState(swapChain->pso);
-        commandList->SetGraphicsRootSignature(swapChain->rootSig);
+        commandList->SetPipelineState(swapChain->pso.Get());
+        commandList->SetGraphicsRootSignature(swapChain->rootSig.Get());
 
         // Set SRV descriptor heap
         ID3D12DescriptorHeap* descriptorHeaps[] = { _imageHandler->GetSRVDescriptorHeap(image) };
@@ -462,7 +463,7 @@ namespace Renderer
         u32 frameIndex = swapChain->frameIndex;
 
         // Transition backbuffer to RenderTarget
-        ID3D12Resource* resource = swapChain->resources[frameIndex];
+        ID3D12Resource* resource = swapChain->resources[frameIndex].Get();
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
         // Transition image to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
@@ -470,8 +471,8 @@ namespace Renderer
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
 
         // Set PSO
-        commandList->SetPipelineState(swapChain->pso);
-        commandList->SetGraphicsRootSignature(swapChain->rootSig);
+        commandList->SetPipelineState(swapChain->pso.Get());
+        commandList->SetGraphicsRootSignature(swapChain->rootSig.Get());
 
         // Set SRV descriptor heap
         ID3D12DescriptorHeap* descriptorHeaps[] = { _imageHandler->GetSRVDescriptorHeap(image) };

@@ -45,10 +45,10 @@ namespace Renderer
             struct Image
             {
                 ImageDesc desc;
-                ID3D12Resource* resource;
+                Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 
-                ID3D12DescriptorHeap* rtvDescriptorHeap;
-                ID3D12DescriptorHeap* srvUavDescriptorHeap;
+                Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;
+                Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvUavDescriptorHeap;
 
                 D3D12_CPU_DESCRIPTOR_HANDLE rtv;
                 D3D12_CPU_DESCRIPTOR_HANDLE srv;
@@ -58,10 +58,10 @@ namespace Renderer
             struct DepthImage
             {
                 DepthImageDesc desc;
-                ID3D12Resource* resource;
+                Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 
-                ID3D12DescriptorHeap* dsvDescriptorHeap;
-                ID3D12DescriptorHeap* srvDescriptorHeap;
+                Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap;
+                Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap;
 
                 D3D12_CPU_DESCRIPTOR_HANDLE dsv;
                 D3D12_CPU_DESCRIPTOR_HANDLE srv;

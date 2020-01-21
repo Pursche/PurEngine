@@ -17,8 +17,10 @@ namespace Renderer
         {
             for (auto& commandList : _commandLists)
             {
-                SAFE_RELEASE(commandList.commandList);
-                SAFE_RELEASE(commandList.allocator);
+                commandList.commandList.Reset();
+                commandList.allocator.Reset();
+                //SAFE_RELEASE(commandList.commandList);
+                //SAFE_RELEASE(commandList.allocator);
                 //SAFE_RELEASE(commandList.fence);
             }
             _commandLists.clear();
@@ -35,7 +37,7 @@ namespace Renderer
                 _availableCommandLists.pop();
 
                 CommandList& commandList = _commandLists[static_cast<type>(id)];
-                HRESULT result = commandList.commandList->Reset(commandList.allocator, NULL);
+                HRESULT result = commandList.commandList->Reset(commandList.allocator.Get(), NULL);
                 assert(SUCCEEDED(result)); // We failed to reset the commandlist
             }
             else
@@ -53,13 +55,13 @@ namespace Renderer
 
             // Execute command list
             commandList.commandList->Close();
-            ID3D12CommandList* ppCommandLists[] = { commandList.commandList };
+            ID3D12CommandList* ppCommandLists[] = { commandList.commandList.Get() };
             device->_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
 
             u32 frameIndex = device->GetFrameIndex();
             // increment the fence value now, otherwise the buffer might not be uploaded by the time we start drawing
             device->_fenceValues[frameIndex]++;
-            HRESULT result = device->_commandQueue->Signal(device->_fences[frameIndex], device->_fenceValues[frameIndex]);
+            HRESULT result = device->_commandQueue->Signal(device->_fences[frameIndex].Get(), device->_fenceValues[frameIndex]);
             assert(SUCCEEDED(result)); // Failed to signal fence
 
             // if the current fence value is still less than "fenceValue", then we know the GPU has not finished executing
@@ -83,7 +85,7 @@ namespace Renderer
             using type = type_safe::underlying_type<CommandListID>;
             CommandList& commandList = _commandLists[static_cast<type>(id)];
 
-            return commandList.commandList;
+            return commandList.commandList.Get();
         }
 
         /*ID3D12Fence* CommandListHandlerDX12::GetFence(CommandListID id)
@@ -121,11 +123,11 @@ namespace Renderer
             CommandList commandList;
 
             // Create the Command Allocator
-            result = device->_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandList.allocator));
+            result = device->_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(commandList.allocator.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create command list allocator
             
             // Create the command list with the first allocator
-            result = device->_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandList.allocator, NULL, IID_PPV_ARGS(&commandList.commandList));
+            result = device->_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandList.allocator.Get(), NULL, IID_PPV_ARGS(commandList.commandList.ReleaseAndGetAddressOf()));
             assert(SUCCEEDED(result)); // Failed to create command list
 
             _commandLists.push_back(commandList);

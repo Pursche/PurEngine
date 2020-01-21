@@ -20,39 +20,26 @@ namespace Renderer
         {
             for (auto& model : _models)
             {
-                auto& instances = model.second;
-                instances.clear();
+                model.second.clear();
             }
 
             _models.clear(); 
         }
 
         //robin_hood::unordered_map<_ModelID, Instances>& GetModels() { return _models; }
-        std::unordered_map<_ModelID, Instances>& GetModels() { return _models; }
+        robin_hood::unordered_map<_ModelID, Instances>& GetModels() { return _models; }
 
         RenderLayer() {}
-
-        // Range based loop support
-
-        
-    private:
-        
+        ~RenderLayer()
+        {
+            Reset();
+        }
 
     private:
-        //robin_hood::unordered_map<_ModelID, Instances> _models;
-        std::unordered_map<_ModelID, Instances> _models;
+        
+
+    private:
+        robin_hood::unordered_map<_ModelID, Instances> _models;
+        //std::unordered_map<_ModelID, Instances> _models;
     };
-
-    /* This should be able to be drawn like this:
-        
-        RenderPass should:
-            - Set RasterizerState
-            * For each RenderLayer drawn in this pass
-                * For each model in _models
-                    - Set vertex/index buffers from ModelID
-                    * For each InstanceData in model
-                        - Set constant buffer
-                        - DRAW
-    
-    */
 }

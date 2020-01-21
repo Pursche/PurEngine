@@ -4,6 +4,7 @@
 
 #include <Memory/StackAllocator.h>
 #include <Utils/Timer.h>
+#include <Utils/Defer.h>
 #include <Window/Window.h>
 
 // Rendergraph
@@ -26,16 +27,10 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     const int width = 1280;
     const int height = 720;
 
-    Window* mainWindow = new Window(hInstance, nCmdShow, Vector2(width, height));
-
-    /*OldRenderer oldRenderer;
-    if (!oldRenderer.Init(&mainWindow, width, height))
-    {
-        mainWindow.SendMessageBox("Error", "Failed to initialize direct3d 12");
-    }*/
+    Window mainWindow(hInstance, nCmdShow, Vector2(width, height));
 
     Renderer::Renderer* renderer = new Renderer::RendererDX12();
-    renderer->InitWindow(mainWindow);
+    renderer->InitWindow(&mainWindow);
 
     Camera camera(Vector3(0,0,10));
 
@@ -65,7 +60,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     Renderer::InstanceData cubeInstance;
     cubeInstance.modelMatrix = Matrix(); // Move, rotate etc the model here
 
-    mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
+    //mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
 
     struct ViewConstantBuffer
     {
@@ -121,19 +116,14 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
         frameAllocator.Reset(); // Reset the frame allocator at the start of every frame
 
-        if (mainWindow->WantsToExit())
+        if (mainWindow.WantsToExit())
         {
-            //oldRenderer.Cleanup();
-            mainWindow->ConfirmExit();
+            mainWindow.ConfirmExit();
             break;
         }
-        mainWindow->Update(deltaTime);
+        mainWindow.Update(deltaTime);
 
         camera.Update(deltaTime);
-
-        //oldRenderer.SetViewMatrix(camera.GetViewMatrix().Inverted());
-        //oldRenderer.Update(deltaTime);
-        //oldRenderer.Render();
 
         viewConstantBuffer.resource.viewMatrix = camera.GetViewMatrix().Transposed();
         viewConstantBuffer.Apply(frameIndex);
@@ -142,7 +132,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         renderGraphDesc.allocator = &frameAllocator;
         Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc); // TODO(important): Fix RenderGraph memory allocation, maybe a per-frame allocator?
 
-        //mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
+        mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
         
         // Depth Prepass
         /*{
@@ -264,9 +254,9 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                     return true; // Return true from setup to enable this pass, return false to disable it
                 },
-                [&](MainPassData& /*data*/, Renderer::CommandList& /*commandList*/) // Execute
+                [&](MainPassData& data, Renderer::CommandList& commandList) // Execute
                 {
-                    /*Renderer::GraphicsPipelineDesc pipelineDesc;
+                    Renderer::GraphicsPipelineDesc pipelineDesc;
                     renderGraph.InitializePipelineDesc(pipelineDesc);
 
                     // Shaders
@@ -295,8 +285,6 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                     //pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_GREATER;
 
                     pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_BACK;
-                    //pipelineDesc.states.rasterizerState.frontFaceMode = Renderer::FrontFaceState::FRONT_FACE_STATE_COUNTERCLOCKWISE;
-                    //pipelineDesc.states.rasterizerState.frontFaceMode = Renderer::FrontFaceState::FRONT_FACE_STATE_CLOCKWISE;
 
                     // Textures
 
@@ -334,7 +322,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                     clearMainColorCommand->color = Vector4(0, 0, 0, 1);
 
                     // Render main layer
-                    Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MainRenderLayer);
+                    Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MAIN_RENDER_LAYER);
 
                     for (auto const& model : mainLayer.GetModels())
                     {
@@ -343,8 +331,8 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                         for (auto const& instance : instances)
                         {
-                            modelConstantBuffer.resource.modelMatrix = instance.modelMatrix;
-                            modelConstantBuffer.resource.colorMultiplier = instance.colorMultiplier;
+                            modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
+                            modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
 
                             modelConstantBuffer.Apply(frameIndex);
 
@@ -362,18 +350,18 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                     presentCommand->window = &mainWindow;
                     presentCommand->image = mainColor;
 
-                //commandList.Execute();*/
+                //commandList.Execute();
             });
         }
 
         renderGraph.Setup();
         renderGraph.Execute();
 
-        //renderer->Present(&mainWindow, mainDepth);
-        //renderer->Present(&mainWindow, mainColor);
+        renderer->Present(&mainWindow, mainDepth);
+        renderer->Present(&mainWindow, mainColor);
 
         // Reset layers
-        //mainLayer.Reset();
+        mainLayer.Reset();
 
         // Wait for update rate, this might be an overkill implementation but it has the even update rate I've seen - MPursche
         for (deltaTime = timer.GetDeltaTime(); deltaTime < targetDelta - 0.0025f; deltaTime = timer.GetDeltaTime())
@@ -389,7 +377,6 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         frameIndex = !frameIndex; // Flip between 0 and 1
     }
 
-    delete mainWindow;
     renderer->Deinit();
     return 0;
 }

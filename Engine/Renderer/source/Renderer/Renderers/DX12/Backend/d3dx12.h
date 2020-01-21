@@ -13,6 +13,7 @@
 #define __D3DX12_H__
 
 #include "d3d12.h"
+#include <wrl/client.h>
 
 #define SAFE_RELEASE(p) { if ( (p) ) { (p)->Release(); (p) = 0; } }
 

@@ -29,8 +29,8 @@ namespace Renderer
         private:
             struct CommandList
             {
-                ID3D12GraphicsCommandList* commandList;
-                ID3D12CommandAllocator* allocator;
+                Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList;
+                Microsoft::WRL::ComPtr<ID3D12CommandAllocator> allocator;
 
                 //ID3D12Fence* fence;
                 //u64 fenceValue;

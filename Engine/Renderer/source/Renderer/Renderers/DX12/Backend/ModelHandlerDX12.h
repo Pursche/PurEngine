@@ -29,11 +29,11 @@ namespace Renderer
             {
                 ModelDesc desc;
 
-                ID3D12Resource* vertexBuffer;
-                ID3D12Resource* indexBuffer;
+                Microsoft::WRL::ComPtr<ID3D12Resource> vertexBuffer;
+                Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
 
-                D3D12_VERTEX_BUFFER_VIEW* vertexBufferView;
-                D3D12_INDEX_BUFFER_VIEW* indexBufferView;
+                D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
+                D3D12_INDEX_BUFFER_VIEW indexBufferView;
 
                 u32 numIndices;
             };

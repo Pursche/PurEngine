@@ -10,10 +10,17 @@ namespace Renderer
         struct ConstantBufferBackendDX12 : public ConstantBufferBackend
         {
             ConstantBufferBackendDX12() {}; // Allow creation of this
+            ~ConstantBufferBackendDX12()
+            {
+                for (int i = 0; i < FRAME_BUFFER_COUNT; i++)
+                {
+                    uploadHeap[i].Reset();
+                }
+            }
 
             static const u32 FRAME_BUFFER_COUNT = 3; // TODO: Don't hardcode this
 
-            ID3D12Resource* uploadHeap[FRAME_BUFFER_COUNT] = {};
+            Microsoft::WRL::ComPtr<ID3D12Resource> uploadHeap[FRAME_BUFFER_COUNT] = {};
             void* gpuAddress[FRAME_BUFFER_COUNT] = {};
 
         private:
@@ -24,7 +31,7 @@ namespace Renderer
 
             void* GetGPUResource(u32 frameIndex) override
             {
-                return uploadHeap[frameIndex];
+                return static_cast<void*>(uploadHeap[frameIndex].Get());
             }
         };
     }

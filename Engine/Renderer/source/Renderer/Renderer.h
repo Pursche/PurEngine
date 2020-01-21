@@ -29,6 +29,8 @@ namespace Renderer
         virtual void InitWindow(Window* window) = 0;
         virtual void Deinit() = 0;
 
+        virtual ~Renderer();
+
         RenderGraph CreateRenderGraph(RenderGraphDesc& desc);
         RenderLayer& GetRenderLayer(u32 layerHash);
 
