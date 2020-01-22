@@ -17,7 +17,10 @@ namespace Renderer
 
     RenderGraph::~RenderGraph()
     {
-
+        for (IRenderPass* pass : _passes)
+        {
+            pass->DeInit();
+        }
     }
 
     /*void RenderGraph::AddPass(RenderPass& pass)

@@ -19,6 +19,7 @@ namespace Renderer
     public:
         virtual bool Setup(RenderGraphBuilder* renderGraphBuilder) = 0;
         virtual void Execute(CommandList& commandList) = 0;
+        virtual void DeInit() = 0;
     };
 
     template <typename PassData>
@@ -48,6 +49,12 @@ namespace Renderer
         }
 
         bool ShouldRun() { return _shouldRun; }
+
+        void DeInit() override
+        {
+            _onSetup = nullptr;
+            _onExecute = nullptr;
+        }
     private:
 
     private:

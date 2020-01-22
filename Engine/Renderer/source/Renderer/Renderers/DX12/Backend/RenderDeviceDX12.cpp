@@ -43,6 +43,8 @@ namespace Renderer
                 delete swapChain;
             }
             _swapChains.clear();
+
+            CloseHandle(_fenceEvent);
         }
 
         void RenderDeviceDX12::Init()

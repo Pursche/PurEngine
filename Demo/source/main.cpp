@@ -60,7 +60,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     Renderer::InstanceData cubeInstance;
     cubeInstance.modelMatrix = Matrix(); // Move, rotate etc the model here
 
-    //mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
+    mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
 
     struct ViewConstantBuffer
     {
@@ -357,13 +357,13 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         renderGraph.Setup();
         renderGraph.Execute();
 
-        renderer->Present(&mainWindow, mainDepth);
-        renderer->Present(&mainWindow, mainColor);
+        //renderer->Present(&mainWindow, mainDepth);
+        //renderer->Present(&mainWindow, mainColor);
 
         // Reset layers
         mainLayer.Reset();
 
-        // Wait for update rate, this might be an overkill implementation but it has the even update rate I've seen - MPursche
+        // Wait for update rate, this might be an overkill implementation but it has the most even update rate I've seen - MPursche
         for (deltaTime = timer.GetDeltaTime(); deltaTime < targetDelta - 0.0025f; deltaTime = timer.GetDeltaTime())
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -378,5 +378,6 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     }
 
     renderer->Deinit();
+    delete renderer;
     return 0;
 }
