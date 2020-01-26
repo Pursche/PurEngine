@@ -122,14 +122,14 @@ namespace Renderer
 
             // Create SRV
             image.srv = image.srvUavDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-            device->_device->CreateShaderResourceView(image.resource.Get(), nullptr, image.srv); // TODO: Unsure if this works, do we need a descriptor as well?
+            device->_device->CreateShaderResourceView(image.resource.Get(), nullptr, image.srv);
 
             // Create UAV
             image.uav = image.srvUavDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
             
             image.uav.ptr += srvUavDescriptorSize;
             
-            device->_device->CreateUnorderedAccessView(image.resource.Get(), nullptr, nullptr, image.uav); // TODO: Unsure if this works, do we need a descriptor as well? What about counter resource?
+            device->_device->CreateUnorderedAccessView(image.resource.Get(), nullptr, nullptr, image.uav);
 
             _images.push_back(image);
 
@@ -574,7 +574,6 @@ namespace Renderer
             return DXGI_FORMAT_UNKNOWN;
         }
 
-        // TODO: I have no idea what I'm doing here, is this correct?
         u32 ImageHandlerDX12::ToNumElements(DepthImageFormat format)
         {
             switch (format)

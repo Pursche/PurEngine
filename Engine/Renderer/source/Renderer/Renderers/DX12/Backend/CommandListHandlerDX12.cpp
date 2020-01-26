@@ -34,10 +34,13 @@ namespace Renderer
             if (_availableCommandLists.size() > 0)
             {
                 id = _availableCommandLists.front();
-                _availableCommandLists.pop();
+                _availableCommandLists.pop();   
 
                 CommandList& commandList = _commandLists[static_cast<type>(id)];
-                HRESULT result = commandList.commandList->Reset(commandList.allocator.Get(), NULL);
+
+                HRESULT result = commandList.allocator->Reset();
+                assert(SUCCEEDED(result)); // We failed to reset the allocator
+                result = commandList.commandList->Reset(commandList.allocator.Get(), NULL);
                 assert(SUCCEEDED(result)); // We failed to reset the commandlist
             }
             else

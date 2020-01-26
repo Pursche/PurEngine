@@ -318,7 +318,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                     // Clear mainColor TODO: This should be handled by the parameter in Setup, and it should definitely not act on ImageID and DepthImageID
                     Renderer::Commands::ClearImage* clearMainColorCommand = commandList.AddCommand<Renderer::Commands::ClearImage>(); // TODO(immediately): Abstract this into something more DX11-like                                                                                                          
-                    clearMainColorCommand->image = mainColor; // TODO: I really don't like this
+                    clearMainColorCommand->image = mainColor;
                     clearMainColorCommand->color = Vector4(0, 0, 0, 1);
 
                     // Render main layer

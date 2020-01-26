@@ -48,8 +48,6 @@ namespace Renderer
             pass->Execute(commandList);
         }
         commandList.Execute();
-
-        // TODO: Merge all renderpass commandlists into one and execute
     }
 
     void RenderGraph::InitializePipelineDesc(GraphicsPipelineDesc& desc)

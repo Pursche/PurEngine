@@ -533,9 +533,9 @@ namespace Renderer
             desc.SlopeScaledDepthBias = state.depthBiasSlopeFactor;
             desc.DepthClipEnable = state.depthBiasEnabled;
             desc.MultisampleEnable = state.sampleCount != SAMPLE_COUNT_1;
-            desc.AntialiasedLineEnable = false; // TODO
+            desc.AntialiasedLineEnable = false; // TODO: MSAA support
             desc.ForcedSampleCount = state.sampleCount;
-            desc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF; // TODO
+            desc.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF; // TODO: MSAA support
 
             return desc;
         }
