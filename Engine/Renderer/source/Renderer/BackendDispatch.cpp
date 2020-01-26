@@ -8,7 +8,6 @@
 #include "Commands/SetPipeline.h"
 #include "Commands/SetScissorRect.h"
 #include "Commands/SetViewport.h"
-#include "Commands/Present.h"
 
 namespace Renderer
 {
@@ -68,17 +67,5 @@ namespace Renderer
     {
         const Commands::SetViewport* actualData = static_cast<const Commands::SetViewport*>(data);
         renderer->SetViewport(commandList, actualData->viewport);
-    }
-
-    void BackendDispatch::PresentImage(Renderer* renderer, CommandListID commandList, const void* data)
-    {
-        const Commands::PresentImage* actualData = static_cast<const Commands::PresentImage*>(data);
-        renderer->Present(commandList, actualData->window, actualData->image);
-    }
-
-    void BackendDispatch::PresentDepthImage(Renderer* renderer, CommandListID commandList, const void* data)
-    {
-        const Commands::PresentDepthImage* actualData = static_cast<const Commands::PresentDepthImage*>(data);
-        renderer->Present(commandList, actualData->window, actualData->image);
     }
 }

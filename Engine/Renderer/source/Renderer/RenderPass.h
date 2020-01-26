@@ -30,11 +30,11 @@ namespace Renderer
         typedef std::function<void(PassData&, CommandList&)> ExecuteFunction;
     
         RenderPass(std::string& name, SetupFunction onSetup, ExecuteFunction onExecute)
-            : _name(name)
-            , _onSetup(onSetup)
+            : _onSetup(onSetup)
             , _onExecute(onExecute)
         {
-
+            assert(name.length() < 16); // Max length of renderpass names is enforced to 15 chars since we have to store the string internally
+            strcpy(_name, name.c_str());
         }
 
     private:
@@ -45,7 +45,9 @@ namespace Renderer
 
         void Execute(CommandList& commandList) override
         {
+            commandList.PushMarker(_name, Vector3(0.0f, 0.4f, 0.0f));
             _onExecute(_data, commandList);
+            commandList.PopMarker();
         }
 
         bool ShouldRun() { return _shouldRun; }
@@ -58,7 +60,7 @@ namespace Renderer
     private:
 
     private:
-        std::string& _name;
+        char _name[16];
         SetupFunction _onSetup;
         ExecuteFunction _onExecute;
 

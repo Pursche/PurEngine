@@ -71,12 +71,7 @@ namespace Renderer
         virtual void SetScissorRect(CommandListID commandList, ScissorRect scissorRect) = 0;
         virtual void SetViewport(CommandListID commandList, Viewport viewport) = 0;
 
-
-        // Commandlist based presents
-        virtual void Present(CommandListID commandListID, Window* window, ImageID image) = 0;
-        virtual void Present(CommandListID commandListID, Window* window, DepthImageID image) = 0;
-
-        // Non-commandlist based presents
+        // Non-commandlist based present functions
         virtual void Present(Window* window, ImageID image) = 0;
         virtual void Present(Window* window, DepthImageID image) = 0;
 

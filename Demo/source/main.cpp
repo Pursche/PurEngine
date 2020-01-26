@@ -62,6 +62,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
     mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
 
+    // ViewConstantBuffer will be a constant buffer which holds information about our Camera, like our View and Projection matrices
     struct ViewConstantBuffer
     {
         Matrix viewMatrix; // 64 bytes
@@ -123,32 +124,34 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         }
         mainWindow.Update(deltaTime);
 
+        // Lets update our camera and the view constantbuffer
         camera.Update(deltaTime);
-
         viewConstantBuffer.resource.viewMatrix = camera.GetViewMatrix().Transposed();
         viewConstantBuffer.Apply(frameIndex);
 
+        // Register models to be rendered
+        mainLayer.RegisterModel(cubeModel, &cubeInstance);
+
+        // Create a framegraph
         Renderer::RenderGraphDesc renderGraphDesc;
         renderGraphDesc.allocator = &frameAllocator;
         Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc); // TODO(important): Fix RenderGraph memory allocation, maybe a per-frame allocator?
 
-        mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
-        
         // Depth Prepass
-        /*{
+        {
             struct DepthPrepassData
             {
                 Renderer::RenderPassMutableResource depth;
             };
 
             renderGraph.AddPass<DepthPrepassData>("Depth Prepass",
-            [&](DepthPrepassData& data, Renderer::RenderGraphBuilder& builder) // Setup
+            [&](DepthPrepassData& data, Renderer::RenderGraphBuilder& builder) // Setup runs singlethreaded first, here we register what resources we're going to use
             { 
                 data.depth = builder.Write(mainDepth, Renderer::RenderGraphBuilder::WriteMode::WRITE_MODE_RENDERTARGET, Renderer::RenderGraphBuilder::LoadMode::LOAD_MODE_CLEAR);
 
                 return true; // Return true from setup to enable this pass, return false to disable it
             },
-            [&](DepthPrepassData& data, Renderer::CommandList& commandList) // Execute
+            [&](DepthPrepassData& data, Renderer::CommandList& commandList) // Execute will run parallel, here we build an API-agnostic commandlist (which will be merged and executed afterwards)
             {
                 Renderer::GraphicsPipelineDesc pipelineDesc;
                 renderGraph.InitializePipelineDesc(pipelineDesc);
@@ -158,61 +161,45 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                 vertexShaderDesc.path = "Data/shaders/depthPrepass.vs.hlsl.cso";
                 pipelineDesc.states.vertexShader = renderer->LoadShader(vertexShaderDesc); // This will load shader or use cached loaded shader
 
-                //Renderer::PixelShaderDesc pixelShaderDesc;
-                //pixelShaderDesc.path = "Data/shaders/depthPrepass.ps.hlsl.cso";
-                //pipelineDesc.pixelShader = renderer->LoadShader(pixelShaderDesc); // This will load shader or use cached loaded shader
-
                 // Constant buffers  TODO: Improve on this, if I set state 0 and 3 it won't work etc...
                 pipelineDesc.states.constantBufferStates[0].enabled = true; // ViewCB
                 pipelineDesc.states.constantBufferStates[0].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
                 pipelineDesc.states.constantBufferStates[1].enabled = true; // ModelCB
                 pipelineDesc.states.constantBufferStates[1].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
 
-                // Input layouts TODO: Improve on this, if I set state 0 and 3 it won't work etc...
+                // Input layouts TODO: Improve on this, if I set state 0 and 3 it won't work etc... Maybe responsibility for this should be moved to ModelHandler and the cooker?
                 pipelineDesc.states.inputLayouts[0].enabled = true;
                 pipelineDesc.states.inputLayouts[0].SetName("POSITION");
                 pipelineDesc.states.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
                 pipelineDesc.states.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
 
                 // Depth state
+                pipelineDesc.states.depthStencilState.depthEnable = true;
                 pipelineDesc.states.depthStencilState.depthWriteEnable = true;
-                pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_GREATER;
+                pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_LESS;
 
-                pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_NONE;
-                //pipelineDesc.states.rasterizerState.frontFaceMode = Renderer::FrontFaceState::FRONT_FACE_STATE_CLOCKWISE;
-
-                // Textures
+                // Rasterizer state
+                pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_BACK;
 
                 // Render targets
                 pipelineDesc.depthStencil = data.depth;
 
                 // Set pipeline
-                Renderer::GraphicsPipelineID pipeline = renderer->CreatePipeline(pipelineDesc); // This will compile the pipeline and return the ID, or return ID of cached pipeline
-                Renderer::Commands::SetGraphicsPipeline* pipelineCommand = commandList.AddCommand<Renderer::Commands::SetGraphicsPipeline>(); // TODO(immediately): Abstract this into something more DX11-like
-                pipelineCommand->pipeline = pipeline;
+                Renderer::GraphicsPipelineID pipeline = renderer->CreatePipeline(pipelineDesc); // This will compile the pipeline and return the ID, or just return ID of cached pipeline
+                commandList.SetPipeline(pipeline);
 
                 // Set viewport and scissor rect
-                Renderer::Commands::SetScissorRect* scissorRectCommand = commandList.AddCommand<Renderer::Commands::SetScissorRect>(); // TODO(immediately): Abstract this into something more DX11-like
-                scissorRectCommand->scissorRect.left = 0;
-                scissorRectCommand->scissorRect.right = width;
-                scissorRectCommand->scissorRect.top = 0;
-                scissorRectCommand->scissorRect.bottom = height;
-                
-                Renderer::Commands::SetViewport* viewportCommand = commandList.AddCommand<Renderer::Commands::SetViewport>(); // TODO(immediately): Abstract this into something more DX11-like
-                viewportCommand->viewport.topLeftX = 0;
-                viewportCommand->viewport.topLeftY = 0;
-                viewportCommand->viewport.width = static_cast<f32>(width);
-                viewportCommand->viewport.height = static_cast<f32>(height);
-                viewportCommand->viewport.minDepth = 0.0f;
-                viewportCommand->viewport.maxDepth = 1.0f;
+                commandList.SetScissorRect(0, width, 0, height);
+                commandList.SetViewport(0, 0, static_cast<f32>(width), static_cast<f32>(height), 0.0f, 1.0f);
 
                 // Set view constant buffer
-                Renderer::Commands::SetConstantBuffer* viewConstantBufferCommand = commandList.AddCommand<Renderer::Commands::SetConstantBuffer>(); // TODO(immediately): Abstract this into something more DX11-like
-                viewConstantBufferCommand->slot = 0;
-                viewConstantBufferCommand->gpuResource = viewConstantBuffer.GetGPUResource(frameIndex);
+                commandList.SetConstantBuffer(0, viewConstantBuffer.GetGPUResource(frameIndex));
+
+                // Clear depth to 1.0f (furthest from camera)
+                commandList.Clear(mainDepth, 1.0f);
 
                 // Render main layer
-                Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MainRenderLayer);
+                Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MAIN_RENDER_LAYER);
 
                 for (auto const& model : mainLayer.GetModels())
                 {
@@ -221,36 +208,34 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                     for (auto const& instance : instances)
                     {
-                        modelConstantBuffer.resource.modelMatrix = instance.modelMatrix;
-                        modelConstantBuffer.resource.colorMultiplier = instance.colorMultiplier;
-
+                        // Update model constant buffer
+                        modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
+                        modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
                         modelConstantBuffer.Apply(frameIndex);
 
                         // Set model constant buffer
-                        Renderer::Commands::SetConstantBuffer* modelConstantBufferCommand = commandList.AddCommand<Renderer::Commands::SetConstantBuffer>(); // TODO(immediately): Abstract this into something more DX11-like
-                        modelConstantBufferCommand->slot = 1;
-                        modelConstantBufferCommand->gpuResource = modelConstantBuffer.GetGPUResource(frameIndex);
+                        commandList.SetConstantBuffer(1, modelConstantBuffer.GetGPUResource(frameIndex));
 
-                        Renderer::Commands::Draw* drawCommand = commandList.AddCommand<Renderer::Commands::Draw>(); // TODO(immediately): Abstract this into something more DX11-like
-                        drawCommand->model = modelID;
+                        // Draw
+                        commandList.Draw(modelID);
                     }
                 }
-
-                commandList.Execute();
             });
-        }*/
+        }
 
         // Main Pass
         {
             struct MainPassData
             {
                 Renderer::RenderPassMutableResource mainColor;
+                Renderer::RenderPassMutableResource depth;
             };
 
             renderGraph.AddPass<MainPassData>("Main Pass",
                 [&](MainPassData& data, Renderer::RenderGraphBuilder& builder) // Setup
                 {
                     data.mainColor = builder.Write(mainColor, Renderer::RenderGraphBuilder::WriteMode::WRITE_MODE_RENDERTARGET, Renderer::RenderGraphBuilder::LoadMode::LOAD_MODE_CLEAR);
+                    data.depth = builder.Write(mainDepth, Renderer::RenderGraphBuilder::WriteMode::WRITE_MODE_RENDERTARGET, Renderer::RenderGraphBuilder::LoadMode::LOAD_MODE_LOAD); // TODO: Should this one be Read? Maybe?
 
                     return true; // Return true from setup to enable this pass, return false to disable it
                 },
@@ -274,52 +259,38 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                     pipelineDesc.states.constantBufferStates[1].enabled = true; // ModelCB
                     pipelineDesc.states.constantBufferStates[1].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
 
-                    // Input layouts TODO: Improve on this, if I set state 0 and 3 it won't work etc...
+                    // Input layouts TODO: Improve on this, if I set state 0 and 3 it won't work etc... Maybe responsibility for this should be moved to ModelHandler and the cooker?
                     pipelineDesc.states.inputLayouts[0].enabled = true;
                     pipelineDesc.states.inputLayouts[0].SetName("POSITION");
                     pipelineDesc.states.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
                     pipelineDesc.states.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
 
                     // Depth state
-                    //pipelineDesc.states.depthStencilState.depthWriteEnable = false;
-                    //pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_GREATER;
+                    pipelineDesc.states.depthStencilState.depthEnable = true;
+                    pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_EQUAL;
 
+                    // Rasterizer state
                     pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_BACK;
 
                     // Textures
 
                     // Render targets
                     pipelineDesc.renderTargets[0] = data.mainColor;
+                    pipelineDesc.depthStencil = data.depth;
 
                     // Set pipeline
-                    Renderer::GraphicsPipelineID pipeline = renderer->CreatePipeline(pipelineDesc); // This will compile the pipeline and return the ID, or return ID of cached pipeline
-                    Renderer::Commands::SetGraphicsPipeline* pipelineCommand = commandList.AddCommand<Renderer::Commands::SetGraphicsPipeline>(); // TODO(immediately): Abstract this into something more DX11-like
-                    pipelineCommand->pipeline = pipeline;
+                    Renderer::GraphicsPipelineID pipeline = renderer->CreatePipeline(pipelineDesc); // This will compile the pipeline and return the ID, or just return ID of cached pipeline
+                    commandList.SetPipeline(pipeline);
 
                     // Set viewport and scissor rect
-                    Renderer::Commands::SetScissorRect* scissorRectCommand = commandList.AddCommand<Renderer::Commands::SetScissorRect>(); // TODO(immediately): Abstract this into something more DX11-like
-                    scissorRectCommand->scissorRect.left = 0;
-                    scissorRectCommand->scissorRect.right = width;
-                    scissorRectCommand->scissorRect.top = 0;
-                    scissorRectCommand->scissorRect.bottom = height;
-
-                    Renderer::Commands::SetViewport* viewportCommand = commandList.AddCommand<Renderer::Commands::SetViewport>(); // TODO(immediately): Abstract this into something more DX11-like
-                    viewportCommand->viewport.topLeftX = 0;
-                    viewportCommand->viewport.topLeftY = 0;
-                    viewportCommand->viewport.width = static_cast<f32>(width);
-                    viewportCommand->viewport.height = static_cast<f32>(height);
-                    viewportCommand->viewport.minDepth = 0.0f;
-                    viewportCommand->viewport.maxDepth = 1.0f;
+                    commandList.SetScissorRect(0, width, 0, height);
+                    commandList.SetViewport(0, 0, static_cast<f32>(width), static_cast<f32>(height), 0.0f, 1.0f);
 
                     // Set view constant buffer
-                    Renderer::Commands::SetConstantBuffer* viewConstantBufferCommand = commandList.AddCommand<Renderer::Commands::SetConstantBuffer>(); // TODO(immediately): Abstract this into something more DX11-like
-                    viewConstantBufferCommand->slot = 0;
-                    viewConstantBufferCommand->gpuResource = viewConstantBuffer.GetGPUResource(frameIndex);
+                    commandList.SetConstantBuffer(0, viewConstantBuffer.GetGPUResource(frameIndex));
 
                     // Clear mainColor TODO: This should be handled by the parameter in Setup, and it should definitely not act on ImageID and DepthImageID
-                    Renderer::Commands::ClearImage* clearMainColorCommand = commandList.AddCommand<Renderer::Commands::ClearImage>(); // TODO(immediately): Abstract this into something more DX11-like                                                                                                          
-                    clearMainColorCommand->image = mainColor;
-                    clearMainColorCommand->color = Vector4(0, 0, 0, 1);
+                    commandList.Clear(mainColor, Vector4(0, 0, 0, 1));
 
                     // Render main layer
                     Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MAIN_RENDER_LAYER);
@@ -331,34 +302,28 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
                         for (auto const& instance : instances)
                         {
+                            // Update model constant buffer
                             modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
                             modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
-
                             modelConstantBuffer.Apply(frameIndex);
 
                             // Set model constant buffer
-                            Renderer::Commands::SetConstantBuffer* modelConstantBufferCommand = commandList.AddCommand<Renderer::Commands::SetConstantBuffer>(); // TODO(immediately): Abstract this into something more DX11-like
-                            modelConstantBufferCommand->slot = 1;
-                            modelConstantBufferCommand->gpuResource = modelConstantBuffer.GetGPUResource(frameIndex);
+                            commandList.SetConstantBuffer(1, modelConstantBuffer.GetGPUResource(frameIndex));
 
-                            Renderer::Commands::Draw* drawCommand = commandList.AddCommand<Renderer::Commands::Draw>(); // TODO(immediately): Abstract this into something more DX11-like
-                            drawCommand->model = modelID;
+                            // Draw
+                            commandList.Draw(modelID);
                         }
                     }
-
-                    Renderer::Commands::PresentImage* presentCommand = commandList.AddCommand<Renderer::Commands::PresentImage>(); // TODO(immediately): Abstract this into something more DX11-like
-                    presentCommand->window = &mainWindow;
-                    presentCommand->image = mainColor;
-
-                //commandList.Execute();
             });
         }
 
+        // Setup and Execute RenderGraph
         renderGraph.Setup();
         renderGraph.Execute();
 
+        // Present to Window
+        renderer->Present(&mainWindow, mainColor);
         //renderer->Present(&mainWindow, mainDepth);
-        //renderer->Present(&mainWindow, mainColor);
 
         // Reset layers
         mainLayer.Reset();

@@ -10,7 +10,7 @@ namespace Renderer
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
             Vector3 color = Vector3(1, 1, 1);
-            std::string marker;
+            char marker[16];
         };
     }
 }

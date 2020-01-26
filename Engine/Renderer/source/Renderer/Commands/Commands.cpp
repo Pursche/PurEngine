@@ -7,7 +7,6 @@
 #include "SetPipeline.h"
 #include "SetScissorRect.h"
 #include "SetViewport.h"
-#include "Present.h"
 
 namespace Renderer
 {
@@ -23,7 +22,5 @@ namespace Renderer
         const BackendDispatchFunction SetComputePipeline::DISPATCH_FUNCTION = &BackendDispatch::SetComputePipeline;
         const BackendDispatchFunction SetScissorRect::DISPATCH_FUNCTION = &BackendDispatch::SetScissorRect;
         const BackendDispatchFunction SetViewport::DISPATCH_FUNCTION = &BackendDispatch::SetViewport;
-        const BackendDispatchFunction PresentImage::DISPATCH_FUNCTION = &BackendDispatch::PresentImage;
-        const BackendDispatchFunction PresentDepthImage::DISPATCH_FUNCTION = &BackendDispatch::PresentDepthImage;
     }
 }

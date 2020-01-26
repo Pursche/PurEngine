@@ -49,11 +49,7 @@ namespace Renderer
         void SetScissorRect(CommandListID commandListID, ScissorRect scissorRect) override;
         void SetViewport(CommandListID commandListID, Viewport viewport) override;
 
-        // Commandlist based presents
-        void Present(CommandListID commandListID, Window* window, ImageID image) override;
-        void Present(CommandListID commandListID, Window* window, DepthImageID image) override;
-
-        // Non-commandlist based presents
+        // Non-commandlist based present functions
         void Present(Window* window, ImageID image) override;
         void Present(Window* window, DepthImageID image) override;
         

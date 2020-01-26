@@ -24,8 +24,5 @@ namespace Renderer
 
         static void SetScissorRect(Renderer* renderer, CommandListID commandList, const void* data);
         static void SetViewport(Renderer* renderer, CommandListID commandList, const void* data);
-
-        static void PresentImage(Renderer* renderer, CommandListID commandList, const void* data);
-        static void PresentDepthImage(Renderer* renderer, CommandListID commandList, const void* data);
     };
 }

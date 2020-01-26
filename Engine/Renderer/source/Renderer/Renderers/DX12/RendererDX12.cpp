@@ -273,8 +273,11 @@ namespace Renderer
         commandList->RSSetViewports(1, &d3d12Viewport);
     }
 
-    void RendererDX12::Present(CommandListID commandListID, Window* window, ImageID image)
+    void RendererDX12::Present(Window* window, ImageID image)
     {
+        CommandListID commandListID = _commandListHandler->BeginCommandList(_device);
+        PushMarker(commandListID, Vector3(0.0f, 0.0f, 0.4f), "Present Image");
+
         ID3D12GraphicsCommandList* commandList = _commandListHandler->GetCommandList(commandListID);
 
         Backend::SwapChainDX12* swapChain = static_cast<Backend::SwapChainDX12*>(window->GetSwapChain());
@@ -314,7 +317,7 @@ namespace Renderer
         viewport.MinDepth = 0;
         viewport.MaxDepth = 1;
         commandList->RSSetViewports(1, &viewport);
-        
+
         D3D12_RECT rect = {};
         rect.right = static_cast<LONG>(viewport.Width);
         rect.bottom = static_cast<LONG>(viewport.Height);
@@ -332,116 +335,7 @@ namespace Renderer
         // Transition image back to D3D12_RESOURCE_STATE_RENDER_TARGET
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-        // Execute
-        _commandListHandler->EndCommandList(_device, commandListID);
-
-        // Present the current backbuffer
-        HRESULT result = swapChain->swapChain->Present(0, 0);
-        assert(SUCCEEDED(result));
-
-        // Increment frame index
-        swapChain->frameIndex = (swapChain->frameIndex + 1) % swapChain->bufferCount;
-    }
-
-    void RendererDX12::Present(CommandListID commandListID, Window* window, DepthImageID image)
-    {
-        ID3D12GraphicsCommandList* commandList = _commandListHandler->GetCommandList(commandListID);
-
-        Backend::SwapChainDX12* swapChain = static_cast<Backend::SwapChainDX12*>(window->GetSwapChain());
-        u32 frameIndex = swapChain->frameIndex;
-
-        // Transition backbuffer to RenderTarget
-        ID3D12Resource* resource = swapChain->resources[frameIndex].Get();
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
-        // Transition image to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-        ID3D12Resource* srvResource = _imageHandler->GetResource(image);
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-
-        // Set PSO
-        commandList->SetPipelineState(swapChain->pso.Get());
-        commandList->SetGraphicsRootSignature(swapChain->rootSig.Get());
-
-        // Set SRV descriptor heap
-        ID3D12DescriptorHeap* descriptorHeaps[] = { _imageHandler->GetSRVDescriptorHeap(image) };
-        commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-        for (int i = 0; i < _countof(descriptorHeaps); i++)
-        {
-            commandList->SetGraphicsRootDescriptorTable(i, descriptorHeaps[i]->GetGPUDescriptorHandleForHeapStart());
-        }
-
-        // Set rendertarget
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapChain->rtvs[frameIndex];
-        commandList->OMSetRenderTargets(1, &rtv, false, nullptr);
-
-        // Draw fullscreen quad to backbuffer
-        commandList->IASetVertexBuffers(0, 0, NULL);
-        commandList->IASetIndexBuffer(NULL);
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        commandList->DrawInstanced(6, 1, 0, 0);
-
-        // Transition backbuffer back to Present
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-
-        // Transition image back to D3D12_RESOURCE_STATE_DEPTH_WRITE
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-
-        // Execute
-        _commandListHandler->EndCommandList(_device, commandListID);
-
-        // Present the current backbuffer
-        HRESULT result = swapChain->swapChain->Present(0, 0);
-        assert(SUCCEEDED(result));
-
-        // Increment frame index
-        swapChain->frameIndex = (swapChain->frameIndex + 1) % swapChain->bufferCount;
-    }
-
-    void RendererDX12::Present(Window* window, ImageID image)
-    {
-        CommandListID commandListID = _commandListHandler->BeginCommandList(_device);
-        ID3D12GraphicsCommandList* commandList = _commandListHandler->GetCommandList(commandListID);
-
-        Backend::SwapChainDX12* swapChain = static_cast<Backend::SwapChainDX12*>(window->GetSwapChain());
-        u32 frameIndex = swapChain->frameIndex;
-
-        // Transition backbuffer to RenderTarget
-        ID3D12Resource* resource = swapChain->resources[frameIndex].Get();
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
-        // Transition image to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-        ID3D12Resource* srvResource = _imageHandler->GetResource(image);
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-
-        // Set PSO
-        commandList->SetPipelineState(swapChain->pso.Get());
-        commandList->SetGraphicsRootSignature(swapChain->rootSig.Get());
-
-        // Set SRV descriptor heap
-        ID3D12DescriptorHeap* descriptorHeaps[] = { _imageHandler->GetSRVDescriptorHeap(image) };
-        commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
-
-        for (int i = 0; i < _countof(descriptorHeaps); i++)
-        {
-            commandList->SetGraphicsRootDescriptorTable(i, descriptorHeaps[i]->GetGPUDescriptorHandleForHeapStart());
-        }
-
-        // Set rendertarget
-        D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapChain->rtvs[frameIndex];
-        commandList->OMSetRenderTargets(1, &rtv, false, nullptr);
-
-        // Draw fullscreen quad to backbuffer
-        commandList->IASetVertexBuffers(0, 0, NULL);
-        commandList->IASetIndexBuffer(NULL);
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        commandList->DrawInstanced(6, 1, 0, 0);
-
-        // Transition backbuffer back to Present
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-
-        // Transition image back to D3D12_RESOURCE_STATE_RENDER_TARGET
-        commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+        PopMarker(commandListID);
 
         // Execute
         _commandListHandler->EndCommandList(_device, commandListID);
@@ -457,6 +351,8 @@ namespace Renderer
     void RendererDX12::Present(Window* window, DepthImageID image)
     {
         CommandListID commandListID = _commandListHandler->BeginCommandList(_device);
+        PushMarker(commandListID, Vector3(0.0f, 0.0f, 0.4f), "Present Depth Image");
+
         ID3D12GraphicsCommandList* commandList = _commandListHandler->GetCommandList(commandListID);
 
         Backend::SwapChainDX12* swapChain = static_cast<Backend::SwapChainDX12*>(window->GetSwapChain());
@@ -487,17 +383,34 @@ namespace Renderer
         D3D12_CPU_DESCRIPTOR_HANDLE rtv = swapChain->rtvs[frameIndex];
         commandList->OMSetRenderTargets(1, &rtv, false, nullptr);
 
+        // Set viewport and scissor rect
+        D3D12_VIEWPORT viewport = {};
+        viewport.Width = window->GetWindowSize().x;
+        viewport.Height = window->GetWindowSize().y;
+        viewport.TopLeftX = 0;
+        viewport.TopLeftY = 0;
+        viewport.MinDepth = 0;
+        viewport.MaxDepth = 1;
+        commandList->RSSetViewports(1, &viewport);
+
+        D3D12_RECT rect = {};
+        rect.right = static_cast<LONG>(viewport.Width);
+        rect.bottom = static_cast<LONG>(viewport.Height);
+        commandList->RSSetScissorRects(1, &rect);
+
         // Draw fullscreen quad to backbuffer
-        commandList->IASetVertexBuffers(0, 0, NULL);
+        commandList->IASetVertexBuffers(0, 1, &swapChain->vertexBufferView);
         commandList->IASetIndexBuffer(NULL);
-        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        commandList->DrawInstanced(6, 1, 0, 0);
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        commandList->DrawInstanced(4, 1, 0, 0);
 
         // Transition backbuffer back to Present
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
-        // Transition image back to D3D12_RESOURCE_STATE_DEPTH_WRITE
+        // Transition image back to D3D12_RESOURCE_STATE_RENDER_TARGET
         commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(srvResource, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+
+        PopMarker(commandListID);
 
         // Execute
         _commandListHandler->EndCommandList(_device, commandListID);
