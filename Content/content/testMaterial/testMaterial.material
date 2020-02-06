@@ -1,0 +1,36 @@
+
+<MaterialFile>
+    <!-- Samplers -->
+    <!-- filter options: Point, Linear, Anisotropic
+         wrapMode options: wrap, clamp, mirror, border -->
+    <Sampler name="PointWrapSampler" filterXY="point" filterZ="point" wrapModeXY="wrap" wrapModeZ="clamp"/>
+
+    <!-- Blenders -->
+    <!-- BlendMode options: zero, one, srcColor, invSrcColor, srcAlpha, invSrcAlpha, destColor, invDestColor, destAlpha, invDestAlpha, blendFactor, invBlendFactor      See: https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_blend-->
+    <!-- BlendOp options: add, subtract, revSubtract, min, max -->
+    <Blender name="Replace" enabled="false" logicOpEnabled="false" srcBlendMode="one" destBlendMode="zero" blendOp="add" srcAlphaBlendMode="one" destAlphaBlendMode="zero" alphaBlendOp="add"/>
+
+    <!-- Materials -->
+    <Material name="BasicPBS">
+        <!-- Define the parameters of the material -->
+        <!-- Parameter type options: texture1D, texture2D, texture3D, these require a subtype to represent the data inside the texture, e.G: float4, uint3 etc
+             float, int and uint is also supported, add a number after to make it a vector, e.g: float4 or int2 
+             lastly you can specify color, this gets treated like a float4 in the shader but will have extra CPU side checks when binding parameters -->
+        <Parameter name="diffuseTexture" type="texture2D" subtype="float4"/>
+        <Parameter name="colorMultiplier" type="color"/>
+
+        <!-- Inputs -->
+        <Input name="uv" type="position"/>
+
+        <!-- Outputs, Color will require referencing a blender defined above -->
+        <Output name="color" type="color" subtype="float4" blender="Replace"/>
+
+
+        <PSBody> <!-- In here we write HLSL for the pixelshader body -->
+            float3 color = diffuseTexture.Sample(PointWrapSampler, input.uv).rgb;
+            color *= colorMultiplier.rgb;
+
+            output.color = float4(color,1);
+        </PSBody>
+    </Material>
+</MaterialFile>

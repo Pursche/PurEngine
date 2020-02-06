@@ -14,10 +14,11 @@ project (COOKER_NAME)
     objdir "build/%{_AMD_SAMPLE_DIR_LAYOUT}"
     warnings "Extra"
     floatingpoint "Fast"
+    clr "Unsafe"
     
-    nuget { "DynamicLanguageRuntime:1.2.2", "NeoLua:1.3.11", "Capnp.Net.Runtime:1.1.112" }
-    files { "source/**.cs" }
-    links { "System","System.Core","Microsoft.CSharp","System.Runtime.Serialization","System.ComponentModel.DataAnnotations", "Microsoft.Scripting", "Neo.IronLua", "System.Drawing", "System.Drawing.Imaging" }
+    nuget { "DynamicLanguageRuntime:1.2.2", "NeoLua:1.3.11", "Capnp.Net.Runtime:1.1.112", "Vortice.DXC:1.5.0" }
+    files { "source/**.cs", "source/**.hlsl" }
+    links { "System","System.Core", "Microsoft.CSharp","System.Runtime.Serialization","System.ComponentModel.DataAnnotations", "Microsoft.Scripting", "Neo.IronLua", "System.Drawing", "System.Drawing.Imaging", "System.XML" }
     
     filter "configurations:Debug"
         defines { "TRACE", "DEBUG", "CSHARP" }
@@ -31,3 +32,6 @@ project (COOKER_NAME)
     filter "configurations:Final"
         defines { "TRACE", "FINAL", "CSHARP" }
         optimize "On"
+
+    filter "files:**.hlsl"
+        buildaction "Embed"

@@ -35,6 +35,11 @@
 bin/
 build/
 
+#Generated capnp files
+*.capnp.cs
+*.capnp.cpp
+*.capnp.h
+
 # Allow specifics
 !premake/premake5.exe
 !External/capnproto/bin
