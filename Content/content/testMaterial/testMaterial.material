@@ -1,9 +1,9 @@
 
 <MaterialFile>
     <!-- Samplers -->
-    <!-- filter options: Point, Linear, Anisotropic
+    <!-- filter options: point, linear, anisotropic
          wrapMode options: wrap, clamp, mirror, border -->
-    <Sampler name="PointWrapSampler" filterXY="point" filterZ="point" wrapModeXY="wrap" wrapModeZ="clamp"/>
+    <Sampler name="PointWrapSampler" filterXY="anisotropic" filterZ="anisotropic" wrapModeXY="wrap" wrapModeZ="clamp"/>
 
     <!-- Blenders -->
     <!-- BlendMode options: zero, one, srcColor, invSrcColor, srcAlpha, invSrcAlpha, destColor, invDestColor, destAlpha, invDestAlpha, blendFactor, invBlendFactor      See: https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_blend-->

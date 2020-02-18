@@ -199,14 +199,17 @@ namespace Renderer
             material.inputLayouts[0].SetName("POSITION");
             material.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
             material.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
+            material.inputLayouts[0].alignedByteOffset = 0;
             material.inputLayouts[1].enabled = true;
             material.inputLayouts[1].SetName("NORMAL");
             material.inputLayouts[1].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
             material.inputLayouts[1].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
+            material.inputLayouts[1].alignedByteOffset = 12;
             material.inputLayouts[2].enabled = true;
             material.inputLayouts[2].SetName("TEXCOORD");
             material.inputLayouts[2].format = Renderer::InputFormat::INPUT_FORMAT_R32G32_FLOAT;
             material.inputLayouts[2].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
+            material.inputLayouts[2].alignedByteOffset = 24;
             material.numInputLayouts = 3;
 
             // Samplers
