@@ -6,6 +6,7 @@ CompileCapNProto("source", "../../Prototypes/**.capnp", "..\\..\\External\\capnp
 
 project (COOKER_NAME)
     kind "WindowedApp"
+    architecture "x32"
     language "C#"
     location "build"
     filename (COOKER_NAME)

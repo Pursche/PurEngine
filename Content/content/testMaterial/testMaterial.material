@@ -20,17 +20,21 @@
         <Parameter name="colorMultiplier" type="color"/>
 
         <!-- Inputs -->
-        <Input name="uv" type="position"/>
+        <Input name="uv" type="texCoord"/>
 
         <!-- Outputs, Color will require referencing a blender defined above -->
         <Output name="color" type="color" subtype="float4" blender="Replace"/>
 
-
         <PSBody> <!-- In here we write HLSL for the pixelshader body -->
             float3 color = diffuseTexture.Sample(PointWrapSampler, input.uv).rgb;
-            color *= colorMultiplier.rgb;
+            //color *= colorMultiplier.rgb;
 
             output.color = float4(color,1);
         </PSBody>
     </Material>
+
+    <!-- Material Instances -->
+    <MaterialInstance name="DebugBasicPBS" material="BasicPBS">
+        <Texture name="diffuseTexture" path="debug.bmp"/>
+    </MaterialInstance>
 </MaterialFile>

@@ -14,7 +14,7 @@ namespace Cooker.Cookers
 {
     static class MaterialCompiler
     {
-        public static bool CompileMaterial(CapnpGen.Material material, string outputDirectory, out string error)
+        public static bool CompileMaterial(CapnpGen.CapMaterial material, string outputDirectory, out string error)
         {
             error = "";
             Directory.CreateDirectory(outputDirectory);
@@ -43,19 +43,19 @@ namespace Cooker.Cookers
             options.OptimizationLevel = 0;
 
             IDxcBlob vsBlob;
-            if (!CompileShader(vs, material.Descriptor.Name, DxcShaderStage.VertexShader, options, out vsBlob, out error))
+            if (!CompileShader(vs, material.Header.Name, DxcShaderStage.VertexShader, options, out vsBlob, out error))
             {
                 return false;
             }
 
             IDxcBlob psBlob;
-            if (!CompileShader(ps, material.Descriptor.Name, DxcShaderStage.PixelShader, options, out psBlob, out error))
+            if (!CompileShader(ps, material.Header.Name, DxcShaderStage.PixelShader, options, out psBlob, out error))
             {
                 return false;
             }
 
             // Save the shader files
-            string vsPath = Path.Combine(outputDirectory, material.Descriptor.Name + ".vs.hlsl.cso");
+            string vsPath = Path.Combine(outputDirectory, material.Header.Name + ".vs.hlsl.cso");
             byte[] vsBytes = new byte[vsBlob.GetBufferSize()];
             unsafe
             {
@@ -63,25 +63,13 @@ namespace Cooker.Cookers
             }
             File.WriteAllBytes(vsPath, vsBytes);
 
-            string psPath = Path.Combine(outputDirectory, material.Descriptor.Name + ".ps.hlsl.cso");
+            string psPath = Path.Combine(outputDirectory, material.Header.Name + ".ps.hlsl.cso");
             byte[] psBytes = new byte[psBlob.GetBufferSize()];
             unsafe
             {
                 Marshal.Copy((IntPtr)psBlob.GetBufferPointer(), psBytes, 0, (int)psBlob.GetBufferSize());
             }
             File.WriteAllBytes(psPath, psBytes);
-
-            // Serialize and save the material descriptor
-            string descriptorPath = Path.Combine(outputDirectory, material.Descriptor.Name + ".material.bin");
-            using (FileStream outStream = new FileStream(descriptorPath, FileMode.Create))
-            {
-                MessageBuilder message = MessageBuilder.Create();
-                var root = message.BuildRoot<CapnpGen.MaterialDescriptor.WRITER>();
-                material.Descriptor.serialize(root);
-
-                var pump = new FramePump(outStream);
-                pump.Send(message.Frame);
-            }
 
             return true;
         }
@@ -112,7 +100,7 @@ namespace Cooker.Cookers
             return false;
         }
 
-        static string MutateVS(CapnpGen.Material material, string vsTemplate)
+        static string MutateVS(CapnpGen.CapMaterial material, string vsTemplate)
         {
             // Generate VSINPUT block for the template
             string vsInput = GenerateVSInput(material);
@@ -131,46 +119,47 @@ namespace Cooker.Cookers
             return vsTemplate;
         }
 
-        static string GenerateVSInput(CapnpGen.Material material)
+        static string GenerateVSInput(CapnpGen.CapMaterial material)
         {
             string vsInputs = "";
 
-            if (material.Descriptor.Inputs.Any(input => input.Type == CapnpGen.InputType.position))
-                vsInputs += "float3 pos : POSITION;\n";
+            if (material.Header.Inputs.Any(input => input.Type == CapnpGen.CapInputType.normal))
+                vsInputs += "float3 normal : NORMAL;\n";
 
-            if (material.Descriptor.Inputs.Any(input => input.Type == CapnpGen.InputType.color))
-                vsInputs += "float4 color : COLOR;\n";
+            if (material.Header.Inputs.Any(input => input.Type == CapnpGen.CapInputType.texCoord))
+                vsInputs += "float2 texCoord : TEXCOORD;\n";
 
             return vsInputs;
         }
 
-        static string GenerateVSOutput(CapnpGen.Material material)
+        static string GenerateVSOutput(CapnpGen.CapMaterial material)
         {
             string vsOutputs = "";
 
-            if (material.Descriptor.Inputs.Any(input => input.Type == CapnpGen.InputType.position))
-                vsOutputs += "float4 pos : SV_POSITION;\n";
+            uint addedOutputs = 0;
+            if (material.Header.Inputs.Any(input => input.Type == CapnpGen.CapInputType.normal))
+                vsOutputs += "float3 normal : TEXCOORD" + (addedOutputs++) + ";\n";
 
-            if (material.Descriptor.Inputs.Any(input => input.Type == CapnpGen.InputType.color))
-                vsOutputs += "float4 color : COLOR;\n";
+            if (material.Header.Inputs.Any(input => input.Type == CapnpGen.CapInputType.texCoord))
+                vsOutputs += "float2 texCoord : TEXCOORD" + (addedOutputs++) + ";\n";
 
             return vsOutputs;
         }
 
-        static string GenerateVSBody(CapnpGen.Material material)
+        static string GenerateVSBody(CapnpGen.CapMaterial material)
         {
             string vsBody = "";
 
-            if (material.Descriptor.Inputs.Any(input => input.Type == CapnpGen.InputType.position))
-                vsBody += "output.pos = mul(mul(mul(float4(input.pos, 1.0f), modelCB.model), viewCB.view), viewCB.proj);\n";
+            if (material.Header.Inputs.Any(input => input.Type == CapnpGen.CapInputType.normal))
+                vsBody += "output.normal = input.normal;\n";
 
-            if (material.Descriptor.Inputs.Any(input => input.Type == CapnpGen.InputType.color))
-                vsBody += "output.color = input.color;\n";
+            if (material.Header.Inputs.Any(input => input.Type == CapnpGen.CapInputType.texCoord))
+                vsBody += "output.texCoord = input.texCoord;\n";
 
             return vsBody;
         }
 
-        static string MutatePS(CapnpGen.Material material, string psTemplate)
+        static string MutatePS(CapnpGen.CapMaterial material, string psTemplate)
         {
             // Generate PSINPUT block for the template
             string psInput = GeneratePSInput(material);
@@ -193,34 +182,45 @@ namespace Cooker.Cookers
             return psTemplate;
         }
 
-        static string GeneratePSInput(CapnpGen.Material material)
+        static string GeneratePSInput(CapnpGen.CapMaterial material)
         {
             string psInput = "";
 
             // Vertex position
-            foreach(CapnpGen.Input input in material.Descriptor.Inputs)
+            foreach(CapnpGen.CapInput input in material.Header.Inputs)
             {
-                if (input.Type == CapnpGen.InputType.position)
+                if (input.Type == CapnpGen.CapInputType.position)
                 {
                     psInput += "float4 " + input.Name + " : SV_Position;\n";
                     break;
                 }
             }
 
-            // Vertex Color
-            foreach (CapnpGen.Input input in material.Descriptor.Inputs)
+            // Vertex normal
+            uint addedInputs = 0;
+            foreach (CapnpGen.CapInput input in material.Header.Inputs)
             {
-                if (input.Type == CapnpGen.InputType.color)
+                if (input.Type == CapnpGen.CapInputType.normal)
                 {
-                    psInput += "float4 " + input.Name + " : COLOR;\n";
+                    psInput += "float3 " + input.Name + " : TEXCOORD" + (addedInputs++) + ";\n";
+                    break;
+                }
+            }
+
+            // Vertex texCoord
+            foreach (CapnpGen.CapInput input in material.Header.Inputs)
+            {
+                if (input.Type == CapnpGen.CapInputType.texCoord)
+                {
+                    psInput += "float2 " + input.Name + " : TEXCOORD" + (addedInputs++) + ";\n";
                     break;
                 }
             }
 
             // PrimitiveID
-            foreach (CapnpGen.Input input in material.Descriptor.Inputs)
+            foreach (CapnpGen.CapInput input in material.Header.Inputs)
             {
-                if (input.Type == CapnpGen.InputType.primitiveID)
+                if (input.Type == CapnpGen.CapInputType.primitiveID)
                 {
                     psInput += "uint " + input.Name + " : SV_PrimitiveID;\n";
                     break;
@@ -230,13 +230,13 @@ namespace Cooker.Cookers
             return psInput;
         }
 
-        static string GetOutputType(CapnpGen.Output output)
+        static string GetOutputType(CapnpGen.CapOutput output)
         {
             string outputType = "";
 
             switch(output.Type)
             {
-                case CapnpGen.OutputType.color:
+                case CapnpGen.CapOutputType.color:
                     outputType = output.SubType.ToString();
 
                     // Capnproto will prepend "@" on reserved keywords, let's filter that away
@@ -244,7 +244,7 @@ namespace Cooker.Cookers
                         outputType = outputType.Substring(1);
 
                     break;
-                case CapnpGen.OutputType.depth:
+                case CapnpGen.CapOutputType.depth:
                     outputType = "float";
                     break;
             }
@@ -252,24 +252,24 @@ namespace Cooker.Cookers
             return outputType;
         }
 
-        static string GeneratePSOutput(CapnpGen.Material material)
+        static string GeneratePSOutput(CapnpGen.CapMaterial material)
         {
             string psOutput = "";
 
             int numColorTargets = 0;
             int numDepthTargets = 0;
-            foreach (CapnpGen.Output output in material.Descriptor.Outputs)
+            foreach (CapnpGen.CapOutput output in material.Header.Outputs)
             {
                 string type = GetOutputType(output);
 
                 psOutput += type + " " + output.Name + " : ";
 
-                if (output.Type == CapnpGen.OutputType.color)
+                if (output.Type == CapnpGen.CapOutputType.color)
                 {
                     psOutput += "SV_Target" + numColorTargets + ";\n";
                     numColorTargets++;
                 }
-                else if (output.Type == CapnpGen.OutputType.depth)
+                else if (output.Type == CapnpGen.CapOutputType.depth)
                 {
                     psOutput += "SV_Depth" + numDepthTargets + ";\n";
                     numDepthTargets++;
@@ -279,13 +279,13 @@ namespace Cooker.Cookers
             return psOutput;
         }
 
-        static string GeneratePSParameters(CapnpGen.Material material)
+        static string GeneratePSParameters(CapnpGen.CapMaterial material)
         {
             string psParameters = "";
 
             // First lets generate the texture block
             int numTextures = 0;
-            foreach(CapnpGen.Parameter parameter in material.Descriptor.Parameters)
+            foreach(CapnpGen.CapParameter parameter in material.Header.Parameters)
             {
                 string type = parameter.Type.ToString();
                 if (type.StartsWith("texture"))
@@ -299,14 +299,14 @@ namespace Cooker.Cookers
 
             // Then lets generate the sampler block
             int numSamplers = 0;
-            foreach (CapnpGen.Sampler sampler in material.Descriptor.Samplers)
+            foreach (CapnpGen.CapSampler sampler in material.Header.Samplers)
             {
                 psParameters += "SamplerState " + sampler.Name + " : register(s" + numSamplers + ");\n";
             }
 
             // Lastly lets generate the constant buffer block
             string cbBlock = "";
-            foreach (CapnpGen.Parameter parameter in material.Descriptor.Parameters)
+            foreach (CapnpGen.CapParameter parameter in material.Header.Parameters)
             {
                 string type = parameter.Type.ToString();
                 if (!type.StartsWith("texture"))
@@ -332,11 +332,11 @@ namespace Cooker.Cookers
             return psParameters;
         }
 
-        static void SolveCBVariableNames(CapnpGen.Material material)
+        static void SolveCBVariableNames(CapnpGen.CapMaterial material)
         {
             // First find all CB parameter names
             List<string> parameterNames = new List<string>();
-            foreach (CapnpGen.Parameter parameter in material.Descriptor.Parameters)
+            foreach (CapnpGen.CapParameter parameter in material.Header.Parameters)
             {
                 if (!parameter.Type.ToString().StartsWith("texture"))
                 {
@@ -353,8 +353,6 @@ namespace Cooker.Cookers
 
         static bool CompileShader(string shader, string shaderName, DxcShaderStage stage, DxcCompilerOptions options, out IDxcBlob blob, out string error)
         {
-            NativeLibraryLoader.NativeLibrary lib = new NativeLibraryLoader.NativeLibrary("dxil.dll");
-
             error = "";
             blob = null;
             IDxcOperationResult result = DxcCompiler.Compile(stage, shader, "main", shaderName, options);

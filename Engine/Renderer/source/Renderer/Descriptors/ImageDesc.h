@@ -78,6 +78,13 @@ namespace Renderer
         Vector4 clearColor = Vector4(0, 0, 0, 1); // TODO: Color class would be better here...
     };
 
+    struct TextureDesc
+    {
+        std::string path = "";
+    };
+
     // Lets strong-typedef an ID type with the underlying type of u16
     STRONG_TYPEDEF(ImageID, u16);
+    STRONG_TYPEDEF(TextureID, u16);
+    
 }

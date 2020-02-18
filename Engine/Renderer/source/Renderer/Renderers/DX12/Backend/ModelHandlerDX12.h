@@ -40,12 +40,16 @@ namespace Renderer
 
             struct Vertex
             {
-                Vertex(Vector3 inPos)
+                Vertex(Vector3 inPos, Vector3 inNormal, Vector2 inTexCoord)
                 {
                     pos = inPos;
+                    normal = inNormal;
+                    texCoord = inTexCoord;
                 }
 
                 Vector3 pos;
+                Vector3 normal;
+                Vector2 texCoord;
             };
 
             struct TempModelData

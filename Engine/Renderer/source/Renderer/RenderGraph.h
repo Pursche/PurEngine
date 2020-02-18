@@ -34,6 +34,7 @@ namespace Renderer
         RenderGraphBuilder* GetBuilder() { return _renderGraphBuilder; }
 
         void InitializePipelineDesc(GraphicsPipelineDesc& desc);
+        void InitializePipelineDesc(MaterialPipelineDesc& desc);
 
     private:
         RenderGraph(Memory::Allocator* allocator, Renderer* renderer)

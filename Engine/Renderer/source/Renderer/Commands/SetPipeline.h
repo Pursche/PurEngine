@@ -2,6 +2,7 @@
 #include <Core.h>
 #include "../Descriptors/GraphicsPipelineDesc.h"
 #include "../Descriptors/ComputePipelineDesc.h"
+#include "../Descriptors/MaterialDesc.h"
 
 namespace Renderer
 {
@@ -12,6 +13,13 @@ namespace Renderer
             static const BackendDispatchFunction DISPATCH_FUNCTION;
 
             GraphicsPipelineID pipeline = GraphicsPipelineID::Invalid();
+        };
+
+        struct SetMaterialPipeline
+        {
+            static const BackendDispatchFunction DISPATCH_FUNCTION;
+
+            MaterialPipelineID pipeline = MaterialPipelineID::Invalid();
         };
         
         struct SetComputePipeline

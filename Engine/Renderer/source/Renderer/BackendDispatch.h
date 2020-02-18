@@ -20,6 +20,7 @@ namespace Renderer
 
         static void SetConstantBuffer(Renderer* renderer, CommandListID commandList, const void* data);
         static void SetGraphicsPipeline(Renderer* renderer, CommandListID commandList, const void* data);
+        static void SetMaterialPipeline(Renderer* renderer, CommandListID commandList, const void* data);
         static void SetComputePipeline(Renderer* renderer, CommandListID commandList, const void* data);
 
         static void SetScissorRect(Renderer* renderer, CommandListID commandList, const void* data);

@@ -2,6 +2,7 @@
 #include <Core.h>
 #include <vector>
 #include "d3dx12.h"
+#include <wincodec.h>
 
 #include "../../../Descriptors/ImageDesc.h"
 #include "../../../Descriptors/DepthImageDesc.h"
@@ -13,6 +14,7 @@ namespace Renderer
     namespace Backend
     {
         class RenderDeviceDX12;
+        class CommandListHandlerDX12;
         
         class ImageHandlerDX12
         {
@@ -20,6 +22,7 @@ namespace Renderer
             ImageHandlerDX12();
             ~ImageHandlerDX12();
 
+            TextureID LoadTexture(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, const TextureDesc& desc);
             ImageID CreateImage(RenderDeviceDX12* device, const ImageDesc& desc);
             DepthImageID CreateDepthImage(RenderDeviceDX12* device, const DepthImageDesc& desc);
 
@@ -29,8 +32,11 @@ namespace Renderer
             DXGI_FORMAT GetDXGIFormat(const ImageID id);
             DXGI_FORMAT GetDXGIFormat(const DepthImageID id);
 
+            ID3D12Resource* GetResource(const TextureID id);
             ID3D12Resource* GetResource(const ImageID id);
             ID3D12Resource* GetResource(const DepthImageID id);
+
+            D3D12_CPU_DESCRIPTOR_HANDLE GetSRV(const TextureID id);
 
             D3D12_CPU_DESCRIPTOR_HANDLE GetRTV(const ImageID id);
             D3D12_CPU_DESCRIPTOR_HANDLE GetSRV(const ImageID id);
@@ -53,6 +59,8 @@ namespace Renderer
                 D3D12_CPU_DESCRIPTOR_HANDLE rtv;
                 D3D12_CPU_DESCRIPTOR_HANDLE srv;
                 D3D12_CPU_DESCRIPTOR_HANDLE uav;
+
+                bool isTexture = false;
             };
 
             struct DepthImage
@@ -68,6 +76,8 @@ namespace Renderer
             };
 
         private:
+            void LoadImageDataFromFile(u8** imageData, D3D12_RESOURCE_DESC& resourceDescription, std::wstring fileName, int& bytesPerRow);
+
             static ::DXGI_FORMAT ToDXGIFormat(ImageFormat format);
 
             static ::DXGI_FORMAT ToBaseFormat(DepthImageFormat format);
@@ -75,6 +85,10 @@ namespace Renderer
             static ::DXGI_FORMAT ToDSVFormat(DepthImageFormat format);
             static ::DXGI_FORMAT ToDepthFormat(DepthImageFormat format);
             static u32 ToNumElements(DepthImageFormat format);
+
+            static ::DXGI_FORMAT ToDXGIFormat(WICPixelFormatGUID& wicFormatGUID);
+            static WICPixelFormatGUID ToCompatibleWICFormat(WICPixelFormatGUID& wicFormatGUID);
+            static int ToBitsPerPixel(DXGI_FORMAT& dxgiFormat);
             
         private:
             std::vector<Image> _images;

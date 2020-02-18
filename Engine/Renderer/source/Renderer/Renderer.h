@@ -18,6 +18,7 @@
 #include "Descriptors/ImageDesc.h"
 #include "Descriptors/DepthImageDesc.h"
 #include "Descriptors/ModelDesc.h"
+#include "Descriptors/MaterialDesc.h"
 
 class Window;
 
@@ -39,6 +40,7 @@ namespace Renderer
         virtual DepthImageID CreateDepthImage(DepthImageDesc& desc) = 0;
 
         virtual GraphicsPipelineID CreatePipeline(GraphicsPipelineDesc& desc) = 0;
+        virtual MaterialPipelineID CreatePipeline(MaterialPipelineDesc& desc) = 0;
         virtual ComputePipelineID CreatePipeline(ComputePipelineDesc& desc) = 0;
 
         template <typename T>
@@ -51,7 +53,9 @@ namespace Renderer
         }
 
         // Loading
+        virtual TextureID LoadTexture(TextureDesc& desc) = 0;
         virtual ModelID LoadModel(ModelDesc& desc) = 0;
+        virtual MaterialID LoadMaterial(MaterialDesc& desc) = 0;
 
         virtual VertexShaderID LoadShader(VertexShaderDesc& desc) = 0;
         virtual PixelShaderID LoadShader(PixelShaderDesc& desc) = 0;
@@ -67,6 +71,7 @@ namespace Renderer
         virtual void PushMarker(CommandListID commandList, Vector3 color, std::string name) = 0;
         virtual void SetConstantBuffer(CommandListID commandList, u32 slot, void* gpuResource) = 0;
         virtual void SetPipeline(CommandListID commandList, GraphicsPipelineID pipeline) = 0;
+        virtual void SetPipeline(CommandListID commandList, MaterialPipelineID pipeline) = 0;
         virtual void SetPipeline(CommandListID commandList, ComputePipelineID pipeline) = 0;
         virtual void SetScissorRect(CommandListID commandList, ScissorRect scissorRect) = 0;
         virtual void SetViewport(CommandListID commandList, Viewport viewport) = 0;

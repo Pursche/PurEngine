@@ -51,6 +51,12 @@ namespace Renderer
         renderer->SetPipeline(commandList, actualData->pipeline);
     }
 
+    void BackendDispatch::SetMaterialPipeline(Renderer* renderer, CommandListID commandList, const void* data)
+    {
+        const Commands::SetMaterialPipeline* actualData = static_cast<const Commands::SetMaterialPipeline*>(data);
+        renderer->SetPipeline(commandList, actualData->pipeline);
+    }
+
     void BackendDispatch::SetComputePipeline(Renderer* renderer, CommandListID commandList, const void* data)
     {
         const Commands::SetComputePipeline* actualData = static_cast<const Commands::SetComputePipeline*>(data);

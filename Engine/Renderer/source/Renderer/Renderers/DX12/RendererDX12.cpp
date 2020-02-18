@@ -5,6 +5,7 @@
 #include "Backend/ImageHandlerDX12.h"
 #include "Backend/ShaderHandlerDX12.h"
 #include "Backend/ModelHandlerDX12.h"
+#include "Backend/MaterialHandlerDX12.h"
 #include "Backend/PipelineHandlerDX12.h"
 #include "Backend/CommandListHandlerDX12.h"
 
@@ -28,6 +29,7 @@ namespace Renderer
         _modelHandler = new Backend::ModelHandlerDX12();
         _pipelineHandler = new Backend::PipelineHandlerDX12();
         _commandListHandler = new Backend::CommandListHandlerDX12();
+        _materialHandler = new Backend::MaterialHandlerDX12();
     }
 
     void RendererDX12::InitWindow(Window* window)
@@ -42,6 +44,7 @@ namespace Renderer
         delete(_device);
         delete(_imageHandler);
         delete(_shaderHandler);
+        delete(_materialHandler);
         delete(_modelHandler);
         delete(_pipelineHandler);
         delete(_commandListHandler);
@@ -70,14 +73,29 @@ namespace Renderer
         return _pipelineHandler->CreatePipeline(_device, _shaderHandler, _imageHandler, desc);
     }
 
+    MaterialPipelineID RendererDX12::CreatePipeline(MaterialPipelineDesc& desc)
+    {
+        return _pipelineHandler->CreatePipeline(_device, _shaderHandler, _imageHandler, _materialHandler, desc);
+    }
+
     ComputePipelineID RendererDX12::CreatePipeline(ComputePipelineDesc& desc)
     {
         return _pipelineHandler->CreatePipeline(_device, _shaderHandler, _imageHandler, desc);
     }
 
+    TextureID RendererDX12::LoadTexture(TextureDesc& desc)
+    {
+        return _imageHandler->LoadTexture(_device, _commandListHandler, desc);
+    }
+
     ModelID RendererDX12::LoadModel(ModelDesc& desc)
     {
         return _modelHandler->LoadModel(_device, _commandListHandler, desc);
+    }
+
+    MaterialID RendererDX12::LoadMaterial(MaterialDesc& desc)
+    {
+        return _materialHandler->LoadMaterial(_device, _commandListHandler, _shaderHandler, _imageHandler, desc);
     }
 
     VertexShaderID RendererDX12::LoadShader(VertexShaderDesc& desc)
@@ -232,6 +250,38 @@ namespace Renderer
         else
         {
             commandList->OMSetRenderTargets(boundRenderTargets, rtvs, false, nullptr);
+        }
+    }
+
+    void RendererDX12::SetPipeline(CommandListID commandListID, MaterialPipelineID pipeline)
+    {
+        // A MaterialPipelineID is just a GraphicsPipelineID, so lets convert it and set the graphics pipeline
+        using type = type_safe::underlying_type<MaterialPipelineID>;
+        GraphicsPipelineID gPipeline(static_cast<type>(pipeline));
+
+        // Set pipeline
+        SetPipeline(commandListID, gPipeline);
+
+        // Set SRV descriptor heaps
+        ID3D12GraphicsCommandList* commandList = _commandListHandler->GetCommandList(commandListID);
+        const GraphicsPipelineDesc& desc = _pipelineHandler->GetDescriptor(pipeline);
+        const MaterialPipelineDesc& materialDesc = _pipelineHandler->GetMaterialDescriptor(pipeline);
+
+        u8 numSRVs = _materialHandler->GetNumTextures(materialDesc.material);
+        u8 numCBs = _materialHandler->GetNumConstantBufferStates(materialDesc.material);
+        
+        std::vector<ID3D12DescriptorHeap*> descriptorHeaps(numSRVs);
+        for (int i = 0; i < numSRVs; i++)
+        {
+            ImageID imageID = desc.ResourceToImageID(desc.textures[i]);
+            descriptorHeaps[i] = _imageHandler->GetSRVDescriptorHeap(imageID);
+        }
+        commandList->SetDescriptorHeaps(static_cast<u32>(descriptorHeaps.size()), descriptorHeaps.data());
+
+        for (int i = 0; i < numSRVs; i++)
+        {
+            i32 descriptorSlot = numCBs + i;
+            commandList->SetGraphicsRootDescriptorTable(descriptorSlot, descriptorHeaps[i]->GetGPUDescriptorHandleForHeapStart());
         }
     }
 

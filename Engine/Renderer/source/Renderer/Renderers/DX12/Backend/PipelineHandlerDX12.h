@@ -4,6 +4,7 @@
 #include "d3dx12.h"
 #include <Containers/RobinHood.h>
 
+#include "../../../Descriptors/MaterialDesc.h"
 #include "../../../Descriptors/GraphicsPipelineDesc.h"
 #include "../../../Descriptors/ComputePipelineDesc.h"
 
@@ -14,6 +15,7 @@ namespace Renderer
         class RenderDeviceDX12;
         class ShaderHandlerDX12;
         class ImageHandlerDX12;
+        class MaterialHandlerDX12;
 
         class PipelineHandlerDX12
         {
@@ -24,10 +26,14 @@ namespace Renderer
             ~PipelineHandlerDX12();
 
             GraphicsPipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc);
+            MaterialPipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, MaterialHandlerDX12* materialHandler, const MaterialPipelineDesc& desc);
             ComputePipelineID CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, const ComputePipelineDesc& desc);
 
             const GraphicsPipelineDesc& GetDescriptor(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].desc; }
+            const GraphicsPipelineDesc& GetDescriptor(MaterialPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].desc; }
             const ComputePipelineDesc& GetDescriptor(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].desc; }
+
+            const MaterialPipelineDesc& GetMaterialDescriptor(MaterialPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].materialDesc; }
 
             ID3D12PipelineState* GetPSO(GraphicsPipelineID id) { return _graphicsPipelines[static_cast<gIDType>(id)].pso.Get(); }
             ID3D12PipelineState* GetPSO(ComputePipelineID id) { return _computePipelines[static_cast<gIDType>(id)].pso.Get(); }
@@ -39,6 +45,7 @@ namespace Renderer
             struct GraphicsPipeline
             {
                 GraphicsPipelineDesc desc;
+                MaterialPipelineDesc materialDesc;
                 u64 cacheDescHash;
 
                 Microsoft::WRL::ComPtr<ID3D12PipelineState> pso = nullptr;
@@ -82,6 +89,10 @@ namespace Renderer
             D3D12_COMPARISON_FUNC ToComparisonFunc(const ComparisonFunc& comparisonFunc);
             D3D12_DEPTH_STENCILOP_DESC ToDepthStencilOpDesc(const DepthStencilOpDesc& depthStencilOpDesc);
             D3D12_STENCIL_OP ToStencilOp(const StencilOp& op);
+
+            D3D12_FILTER ToFilter(const SamplerFilter& samplerFilter);
+            D3D12_TEXTURE_ADDRESS_MODE ToTextureAddressMode(const TextureAddressMode& textureAddressMode);
+            D3D12_STATIC_BORDER_COLOR ToStaticBorderColor(const StaticBorderColor& staticBorderColor);
 
             D3D12_ROOT_SIGNATURE_FLAGS CalculateRootSigFlags(std::vector<D3D12_ROOT_PARAMETER>& parameters);
             DXGI_SAMPLE_DESC CalculateSampleDesc(ImageHandlerDX12* imageHandler, const GraphicsPipelineDesc& desc);

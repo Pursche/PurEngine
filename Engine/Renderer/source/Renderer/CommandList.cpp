@@ -43,6 +43,12 @@ namespace Renderer
         command->pipeline = pipelineID;
     }
 
+    void CommandList::SetPipeline(MaterialPipelineID pipelineID)
+    {
+        Commands::SetMaterialPipeline* command = AddCommand<Commands::SetMaterialPipeline>();
+        command->pipeline = pipelineID;
+    }
+
     void CommandList::SetScissorRect(u32 left, u32 right, u32 top, u32 bottom)
     {
         Commands::SetScissorRect* command = AddCommand<Commands::SetScissorRect>();

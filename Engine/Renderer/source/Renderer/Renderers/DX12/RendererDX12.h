@@ -9,6 +9,7 @@ namespace Renderer
         class ImageHandlerDX12;
         class ShaderHandlerDX12;
         class ModelHandlerDX12;
+        class MaterialHandlerDX12;
         class PipelineHandlerDX12;
         class CommandListHandlerDX12;
     }
@@ -26,10 +27,13 @@ namespace Renderer
         DepthImageID CreateDepthImage(DepthImageDesc& desc) override;
 
         GraphicsPipelineID CreatePipeline(GraphicsPipelineDesc& desc) override;
+        MaterialPipelineID CreatePipeline(MaterialPipelineDesc& desc) override;
         ComputePipelineID CreatePipeline(ComputePipelineDesc& desc) override;
 
         // Loading
+        TextureID LoadTexture(TextureDesc& desc) override;
         ModelID LoadModel(ModelDesc& desc) override;
+        MaterialID LoadMaterial(MaterialDesc& desc) override;
 
         VertexShaderID LoadShader(VertexShaderDesc& desc) override;
         PixelShaderID LoadShader(PixelShaderDesc& desc) override;
@@ -45,6 +49,7 @@ namespace Renderer
         void PushMarker(CommandListID commandListID, Vector3 color, std::string name) override;
         void SetConstantBuffer(CommandListID commandListID, u32 slot, void* gpuResource) override;
         void SetPipeline(CommandListID commandListID, GraphicsPipelineID pipeline) override;
+        void SetPipeline(CommandListID commandList, MaterialPipelineID pipeline) override;
         void SetPipeline(CommandListID commandListID, ComputePipelineID pipeline) override;
         void SetScissorRect(CommandListID commandListID, ScissorRect scissorRect) override;
         void SetViewport(CommandListID commandListID, Viewport viewport) override;
@@ -61,6 +66,7 @@ namespace Renderer
         Backend::ImageHandlerDX12* _imageHandler = nullptr;
         Backend::ShaderHandlerDX12* _shaderHandler = nullptr;
         Backend::ModelHandlerDX12* _modelHandler = nullptr;
+        Backend::MaterialHandlerDX12* _materialHandler = nullptr;
         Backend::PipelineHandlerDX12* _pipelineHandler = nullptr;
         Backend::CommandListHandlerDX12* _commandListHandler = nullptr;
     };

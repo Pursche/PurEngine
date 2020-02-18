@@ -10,6 +10,7 @@ workspace (ENGINE_NAME)
     location "build"
     filename (ENGINE_NAME .. _AMD_VS_SUFFIX)
     startproject ("Demo")
+    cppdialect "C++17"
 
     filter "platforms:x64"
         system "Windows"

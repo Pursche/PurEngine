@@ -9,10 +9,10 @@ namespace Cooker.Cookers
 {
     static class MaterialParser
     {
-        public static bool ParseSampler(XmlNode samplerNode, List<CapnpGen.Sampler> samplers, out string error)
+        public static bool ParseSampler(XmlNode samplerNode, List<CapnpGen.CapSampler> samplers, out string error)
         {
             error = "";
-            CapnpGen.Sampler sampler = new CapnpGen.Sampler();
+            CapnpGen.CapSampler sampler = new CapnpGen.CapSampler();
 
             string name = "";
             if (!TryGetAttribute(samplerNode, "name", out name))
@@ -22,11 +22,11 @@ namespace Cooker.Cookers
             }
             sampler.Name = name;
 
-            CapnpGen.FilterMode filterXY = CapnpGen.FilterMode.point;
+            CapnpGen.CapFilterMode filterXY = CapnpGen.CapFilterMode.point;
             if (!TryGetAttribute(samplerNode, "filterXY", out filterXY))
             {
                 error = "Sampler node \"" + sampler.Name + "\" does not have a valid filterXY attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.FilterMode));
+                var values = Enum.GetValues(typeof(CapnpGen.CapFilterMode));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -35,11 +35,11 @@ namespace Cooker.Cookers
             }
             sampler.FilterXY = filterXY;
 
-            CapnpGen.FilterMode filterZ = CapnpGen.FilterMode.point;
+            CapnpGen.CapFilterMode filterZ = CapnpGen.CapFilterMode.point;
             if (!TryGetAttribute(samplerNode, "filterZ", out filterZ))
             {
                 error = "Sampler node \"" + sampler.Name + "\" does not have a valid filterZ attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.FilterMode));
+                var values = Enum.GetValues(typeof(CapnpGen.CapFilterMode));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -48,11 +48,11 @@ namespace Cooker.Cookers
             }
             sampler.FilterZ = filterZ;
 
-            CapnpGen.WrapMode wrapModeXY = CapnpGen.WrapMode.clamp;
+            CapnpGen.CapWrapMode wrapModeXY = CapnpGen.CapWrapMode.clamp;
             if (!TryGetAttribute(samplerNode, "wrapModeXY", out wrapModeXY))
             {
                 error = "Sampler node \"" + sampler.Name + "\" does not have a valid wrapModeXY attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.WrapMode));
+                var values = Enum.GetValues(typeof(CapnpGen.CapWrapMode));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -61,11 +61,11 @@ namespace Cooker.Cookers
             }
             sampler.WrapModeXY = wrapModeXY;
 
-            CapnpGen.WrapMode wrapModeZ = CapnpGen.WrapMode.clamp;
+            CapnpGen.CapWrapMode wrapModeZ = CapnpGen.CapWrapMode.clamp;
             if (!TryGetAttribute(samplerNode, "wrapModeZ", out wrapModeZ))
             {
                 error = "Sampler node \"" + sampler.Name + "\" does not have a valid wrapModeZ attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.WrapMode));
+                var values = Enum.GetValues(typeof(CapnpGen.CapWrapMode));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -78,10 +78,10 @@ namespace Cooker.Cookers
             return true;
         }
 
-        public static bool ParseBlender(XmlNode blenderNode, List<CapnpGen.Blender> blenders, out string error)
+        public static bool ParseBlender(XmlNode blenderNode, List<CapnpGen.CapBlender> blenders, out string error)
         {
             error = "";
-            CapnpGen.Blender blender = new CapnpGen.Blender();
+            CapnpGen.CapBlender blender = new CapnpGen.CapBlender();
 
             string name = "";
             if (!TryGetAttribute(blenderNode, "name", out name))
@@ -107,11 +107,11 @@ namespace Cooker.Cookers
             }
             blender.LogicOpEnabled = logicOpEnabled;
 
-            CapnpGen.BlendMode srcBlendMode = CapnpGen.BlendMode.zero;
+            CapnpGen.CapBlendMode srcBlendMode = CapnpGen.CapBlendMode.zero;
             if (!TryGetAttribute(blenderNode, "srcBlendMode", out srcBlendMode))
             {
                 error = "Blender node \"" + blender.Name + "\" does not have a valid srcBlendMode attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.BlendMode));
+                var values = Enum.GetValues(typeof(CapnpGen.CapBlendMode));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -120,11 +120,11 @@ namespace Cooker.Cookers
             }
             blender.SrcBlendMode = srcBlendMode;
 
-            CapnpGen.BlendMode destBlendMode = CapnpGen.BlendMode.zero;
+            CapnpGen.CapBlendMode destBlendMode = CapnpGen.CapBlendMode.zero;
             if (!TryGetAttribute(blenderNode, "destBlendMode", out destBlendMode))
             {
                 error = "Blender node \"" + blender.Name + "\" does not have a valid destBlendMode attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.BlendMode));
+                var values = Enum.GetValues(typeof(CapnpGen.CapBlendMode));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -133,11 +133,11 @@ namespace Cooker.Cookers
             }
             blender.DestBlendMode = destBlendMode;
 
-            CapnpGen.BlendOp blendOp = CapnpGen.BlendOp.add;
+            CapnpGen.CapBlendOp blendOp = CapnpGen.CapBlendOp.add;
             if (!TryGetAttribute(blenderNode, "blendOp", out blendOp))
             {
                 error = "Blender node \"" + blender.Name + "\" does not have a valid blendOp attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.BlendOp));
+                var values = Enum.GetValues(typeof(CapnpGen.CapBlendOp));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -146,11 +146,11 @@ namespace Cooker.Cookers
             }
             blender.BlendOp = blendOp;
 
-            CapnpGen.BlendMode srcAlphaBlendMode = CapnpGen.BlendMode.zero;
+            CapnpGen.CapBlendMode srcAlphaBlendMode = CapnpGen.CapBlendMode.zero;
             if (!TryGetAttribute(blenderNode, "srcAlphaBlendMode", out srcAlphaBlendMode))
             {
                 error = "Blender node \"" + blender.Name + "\" does not have a valid srcAlphaBlendMode attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.BlendMode));
+                var values = Enum.GetValues(typeof(CapnpGen.CapBlendMode));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -159,11 +159,11 @@ namespace Cooker.Cookers
             }
             blender.SrcAlphaBlendMode = srcAlphaBlendMode;
 
-            CapnpGen.BlendMode destAlphaBlendMode = CapnpGen.BlendMode.zero;
+            CapnpGen.CapBlendMode destAlphaBlendMode = CapnpGen.CapBlendMode.zero;
             if (!TryGetAttribute(blenderNode, "destAlphaBlendMode", out destAlphaBlendMode))
             {
                 error = "Blender node \"" + blender.Name + "\" does not have a valid destAlphaBlendMode attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.BlendMode));
+                var values = Enum.GetValues(typeof(CapnpGen.CapBlendMode));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -172,11 +172,11 @@ namespace Cooker.Cookers
             }
             blender.DestAlphaBlendMode = destAlphaBlendMode;
 
-            CapnpGen.BlendOp alphaBlendOp = CapnpGen.BlendOp.add;
+            CapnpGen.CapBlendOp alphaBlendOp = CapnpGen.CapBlendOp.add;
             if (!TryGetAttribute(blenderNode, "alphaBlendOp", out alphaBlendOp))
             {
                 error = "Blender node \"" + blender.Name + "\" does not have a valid alphaBlendOp attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.BlendOp));
+                var values = Enum.GetValues(typeof(CapnpGen.CapBlendOp));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -189,12 +189,12 @@ namespace Cooker.Cookers
             return true;
         }
 
-        public static bool ParseMaterial(XmlNode materialNode, List<CapnpGen.Material> materials, List<CapnpGen.Blender> blenders, List<CapnpGen.Sampler> samplers, out string error)
+        public static bool ParseMaterial(XmlNode materialNode, List<CapnpGen.CapMaterial> materials, List<CapnpGen.CapBlender> blenders, List<CapnpGen.CapSampler> samplers, out string error)
         {
             error = "";
-            CapnpGen.Material material = new CapnpGen.Material();
-            material.Descriptor = new CapnpGen.MaterialDescriptor();
-            material.Descriptor.Samplers = samplers;
+            CapnpGen.CapMaterial material = new CapnpGen.CapMaterial();
+            material.Header = new CapnpGen.CapMaterialHeader();
+            material.Header.Samplers = samplers;
 
             // Name
             string name = "";
@@ -203,10 +203,10 @@ namespace Cooker.Cookers
                 error = "Material node does not have a name attribute";
                 return false;
             }
-            material.Descriptor.Name = name;
+            material.Header.Name = name;
 
             // Parameters
-            List<CapnpGen.Parameter> parameters = new List<CapnpGen.Parameter>();
+            List<CapnpGen.CapParameter> parameters = new List<CapnpGen.CapParameter>();
             XmlNodeList parameterNodes = materialNode.SelectNodes("Parameter");
             foreach (XmlNode parameterNode in parameterNodes)
             {
@@ -215,10 +215,10 @@ namespace Cooker.Cookers
                     return false;
                 }
             }
-            material.Descriptor.Parameters = parameters;
+            material.Header.Parameters = parameters;
 
             // Inputs
-            List<CapnpGen.Input> inputs = new List<CapnpGen.Input>();
+            List<CapnpGen.CapInput> inputs = new List<CapnpGen.CapInput>();
             XmlNodeList inputNodes = materialNode.SelectNodes("Input");
             foreach (XmlNode inputNode in inputNodes)
             {
@@ -227,10 +227,10 @@ namespace Cooker.Cookers
                     return false;
                 }
             }
-            material.Descriptor.Inputs = inputs;
+            material.Header.Inputs = inputs;
 
             // Outputs
-            List<CapnpGen.Output> outputs = new List<CapnpGen.Output>();
+            List<CapnpGen.CapOutput> outputs = new List<CapnpGen.CapOutput>();
             XmlNodeList outputNodes = materialNode.SelectNodes("Output");
             foreach (XmlNode outputNode in outputNodes)
             {
@@ -239,13 +239,13 @@ namespace Cooker.Cookers
                     return false;
                 }
             }
-            material.Descriptor.Outputs = outputs;
+            material.Header.Outputs = outputs;
 
             // PSBody
             XmlNode psBodyNode = materialNode.SelectSingleNode("PSBody");
             if (psBodyNode == null)
             {
-                error = "Material node \"" + material.Descriptor.Name + "\" does not have a PSBody node, this is required.";
+                error = "Material node \"" + material.Header.Name + "\" does not have a PSBody node, this is required.";
                 return false;
             }
             material.PsBody = psBodyNode.InnerText.Trim();
@@ -254,10 +254,127 @@ namespace Cooker.Cookers
             return true;
         }
 
-        static bool ParseParameter(XmlNode parameterNode, List<CapnpGen.Parameter> parameters, out string error)
+        public static bool ParseMaterialInstance(XmlNode materialInstanceNode, List<CapnpGen.CapMaterialInstance> materialInstances, List<CapnpGen.CapMaterial> materials, string materialPath, out string error)
         {
             error = "";
-            CapnpGen.Parameter parameter = new CapnpGen.Parameter();
+            CapnpGen.CapMaterialInstance materialInstance = new CapnpGen.CapMaterialInstance();
+            materialInstance.Header = new CapnpGen.CapMaterialInstanceHeader();
+
+            // Name
+            string name = "";
+            if (!TryGetAttribute(materialInstanceNode, "name", out name))
+            {
+                error = "MaterialInstance node does not have a name attribute";
+                return false;
+            }
+            materialInstance.Header.Name = name;
+
+            // Material
+            string materialName = "";
+            if (!TryGetAttribute(materialInstanceNode, "material", out materialName))
+            {
+                error = "MaterialInstance " + name + " node does not have a material attribute";
+                return false;
+            }
+
+            // Find and verify the material
+            bool found = false;
+            foreach(CapnpGen.CapMaterial material in materials)
+            {
+                if (material.Header.Name == materialName)
+                {
+                    materialInstance.Material = material;
+                    materialInstance.Header.MaterialHeader = material.Header;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                error = "MaterialInstance " + name + " node does not have a valid material attribute, provided material was " + materialName;
+                return false;
+            }
+
+            // Textures
+            List<CapnpGen.CapMaterialTexture> textures = new List<CapnpGen.CapMaterialTexture>();
+            XmlNodeList textureNodes = materialInstanceNode.SelectNodes("Texture");
+            foreach (XmlNode textureNode in textureNodes)
+            {
+                if (!ParseMaterialTexture(textureNode, textures, materialPath, out error))
+                {
+                    return false;
+                }
+            }
+            materialInstance.Header.Textures = textures;
+
+            // Verify that all provided Textures have a valid name for a material parameter
+            foreach(CapnpGen.CapMaterialTexture texture in textures)
+            {
+                bool valid = false;
+                foreach (CapnpGen.CapParameter parameter in materialInstance.Material.Header.Parameters)
+                {
+                    if (parameter.Name == texture.Name)
+                    {
+                        valid = true;
+                        break;
+                    }
+                }
+
+                if (!valid)
+                {
+                    error = "MaterialInstance " + name + " node has a texture" + texture.Name + " without a matching parameter in material " + materialInstance.Material.Header.Name;
+                    return false;
+                }
+            }
+
+            // Verify that all provided Textures has a valid path pointing to a file
+            foreach (CapnpGen.CapMaterialTexture texture in textures)
+            {
+                if (!File.Exists(texture.ContentPath))
+                {
+                    error = "MaterialInstance " + name + " node has a texture" + texture.Name + " with the invalid path " + texture.Path;
+                    return false;
+                }
+            }
+
+
+            materialInstances.Add(materialInstance);
+            return true;
+        }
+
+        static bool ParseMaterialTexture(XmlNode textureNode, List<CapnpGen.CapMaterialTexture> textures, string materialPath, out string error)
+        {
+            error = "";
+            CapnpGen.CapMaterialTexture texture = new CapnpGen.CapMaterialTexture();
+
+            // Name
+            string name = "";
+            if (!TryGetAttribute(textureNode, "name", out name))
+            {
+                error = "Texture node does not have a name attribute";
+                return false;
+            }
+            texture.Name = name;
+
+            // Path
+            string path = "";
+            if (!TryGetAttribute(textureNode, "path", out path))
+            {
+                error = "Texture node " + name + " does not have a path attribute";
+                return false;
+            }
+            texture.Path = path;
+            texture.ContentPath = Path.Combine(Path.GetDirectoryName(materialPath), path);
+
+            textures.Add(texture);
+            return true;
+        }
+
+        static bool ParseParameter(XmlNode parameterNode, List<CapnpGen.CapParameter> parameters, out string error)
+        {
+            error = "";
+            CapnpGen.CapParameter parameter = new CapnpGen.CapParameter();
 
             string name = "";
             if (!TryGetAttribute(parameterNode, "name", out name))
@@ -267,11 +384,11 @@ namespace Cooker.Cookers
             }
             parameter.Name = name;
 
-            CapnpGen.ParameterType parameterType = CapnpGen.ParameterType.@float;
+            CapnpGen.CapParameterType parameterType = CapnpGen.CapParameterType.@float;
             if (!TryGetAttribute(parameterNode, "type", out parameterType))
             {
                 error = "Parameter node \"" + parameter.Name + "\" does not have a valid type attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.ParameterType));
+                var values = Enum.GetValues(typeof(CapnpGen.CapParameterType));
                 foreach (var value in values)
                 {
                     string valueString = value.ToString();
@@ -286,11 +403,11 @@ namespace Cooker.Cookers
 
             if (parameterType.ToString().StartsWith("texture"))
             {
-                CapnpGen.SubType subType = CapnpGen.SubType.@float;
+                CapnpGen.CapSubType subType = CapnpGen.CapSubType.@float;
                 if (!TryGetAttribute(parameterNode, "subtype", out subType))
                 {
                     error = "Parameter node \"" + parameter.Name + "\" is of a texture type but does not have a valid subtype attribute, valid values: ";
-                    var values = Enum.GetValues(typeof(CapnpGen.SubType));
+                    var values = Enum.GetValues(typeof(CapnpGen.CapSubType));
                     foreach (var value in values)
                     {
                         string valueString = value.ToString();
@@ -308,10 +425,10 @@ namespace Cooker.Cookers
             return true;
         }
 
-        static bool ParseInput(XmlNode inputNode, List<CapnpGen.Input> inputs, out string error)
+        static bool ParseInput(XmlNode inputNode, List<CapnpGen.CapInput> inputs, out string error)
         {
             error = "";
-            CapnpGen.Input input = new CapnpGen.Input();
+            CapnpGen.CapInput input = new CapnpGen.CapInput();
 
             string name = "";
             if (!TryGetAttribute(inputNode, "name", out name))
@@ -321,11 +438,11 @@ namespace Cooker.Cookers
             }
             input.Name = name;
 
-            CapnpGen.InputType inputType = CapnpGen.InputType.color;
+            CapnpGen.CapInputType inputType = CapnpGen.CapInputType.position;
             if (!TryGetAttribute(inputNode, "type", out inputType))
             {
                 error = "Input node \"" + input.Name + "\" does not have a valid type attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.InputType));
+                var values = Enum.GetValues(typeof(CapnpGen.CapInputType));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -338,10 +455,10 @@ namespace Cooker.Cookers
             return true;
         }
 
-        static bool ParseOutput(XmlNode outputNode, List<CapnpGen.Output> outputs, List<CapnpGen.Blender> blenders, out string error)
+        static bool ParseOutput(XmlNode outputNode, List<CapnpGen.CapOutput> outputs, List<CapnpGen.CapBlender> blenders, out string error)
         {
             error = "";
-            CapnpGen.Output output = new CapnpGen.Output();
+            CapnpGen.CapOutput output = new CapnpGen.CapOutput();
 
             string name = "";
             if (!TryGetAttribute(outputNode, "name", out name))
@@ -351,11 +468,11 @@ namespace Cooker.Cookers
             }
             output.Name = name;
 
-            CapnpGen.OutputType outputType = CapnpGen.OutputType.color;
+            CapnpGen.CapOutputType outputType = CapnpGen.CapOutputType.color;
             if (!TryGetAttribute(outputNode, "type", out outputType))
             {
                 error = "Output node \"" + output.Name + "\" does not have a valid type attribute, valid values: ";
-                var values = Enum.GetValues(typeof(CapnpGen.OutputType));
+                var values = Enum.GetValues(typeof(CapnpGen.CapOutputType));
                 foreach (var value in values)
                 {
                     error += value + " ";
@@ -366,7 +483,7 @@ namespace Cooker.Cookers
 
             output.Blender = null;
             // If output type was color we'll need a blender
-            if (output.Type == CapnpGen.OutputType.color)
+            if (output.Type == CapnpGen.CapOutputType.color)
             {
                 // Get the blender name
                 string blenderName = "";
@@ -377,7 +494,7 @@ namespace Cooker.Cookers
                 }
 
                 // Find and reference the blender itself
-                foreach (CapnpGen.Blender blender in blenders)
+                foreach (CapnpGen.CapBlender blender in blenders)
                 {
                     if (blender.Name == blenderName)
                     {
@@ -393,11 +510,11 @@ namespace Cooker.Cookers
                     return false;
                 }
 
-                CapnpGen.SubType subType = CapnpGen.SubType.@float;
+                CapnpGen.CapSubType subType = CapnpGen.CapSubType.@float;
                 if (!TryGetAttribute(outputNode, "subtype", out subType))
                 {
                     error = "Output node \"" + output.Name + "\" is of type Color but does not have a valid subtype attribute, valid values: ";
-                    var values = Enum.GetValues(typeof(CapnpGen.SubType));
+                    var values = Enum.GetValues(typeof(CapnpGen.CapSubType));
                     foreach (var value in values)
                     {
                         string valueString = value.ToString();
@@ -436,55 +553,55 @@ namespace Cooker.Cookers
             return true;
         }
 
-        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.FilterMode value)
+        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.CapFilterMode value)
         {
-            value = CapnpGen.FilterMode.point;
+            value = CapnpGen.CapFilterMode.point;
 
             if (node.Attributes[attribute] == null)
                 return false;
 
-            return Enum.TryParse<CapnpGen.FilterMode>(node.Attributes[attribute].Value, out value);
+            return Enum.TryParse<CapnpGen.CapFilterMode>(node.Attributes[attribute].Value, out value);
         }
 
-        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.WrapMode value)
+        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.CapWrapMode value)
         {
-            value = CapnpGen.WrapMode.clamp;
+            value = CapnpGen.CapWrapMode.clamp;
 
             if (node.Attributes[attribute] == null)
                 return false;
 
-            return Enum.TryParse<CapnpGen.WrapMode>(node.Attributes[attribute].Value, out value);
+            return Enum.TryParse<CapnpGen.CapWrapMode>(node.Attributes[attribute].Value, out value);
         }
 
-        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.BlendMode value)
+        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.CapBlendMode value)
         {
-            value = CapnpGen.BlendMode.zero;
+            value = CapnpGen.CapBlendMode.zero;
 
             if (node.Attributes[attribute] == null)
                 return false;
 
-            return Enum.TryParse<CapnpGen.BlendMode>(node.Attributes[attribute].Value, out value);
+            return Enum.TryParse<CapnpGen.CapBlendMode>(node.Attributes[attribute].Value, out value);
         }
 
-        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.BlendOp value)
+        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.CapBlendOp value)
         {
-            value = CapnpGen.BlendOp.add;
+            value = CapnpGen.CapBlendOp.add;
 
             if (node.Attributes[attribute] == null)
                 return false;
 
-            return Enum.TryParse<CapnpGen.BlendOp>(node.Attributes[attribute].Value, out value);
+            return Enum.TryParse<CapnpGen.CapBlendOp>(node.Attributes[attribute].Value, out value);
         }
 
-        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.ParameterType value)
+        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.CapParameterType value)
         {
-            value = CapnpGen.ParameterType.@float;
+            value = CapnpGen.CapParameterType.@float;
 
             if (node.Attributes[attribute] == null)
                 return false;
 
             string valueString = node.Attributes[attribute].Value;
-            var enumValues = Enum.GetValues(typeof(CapnpGen.ParameterType));
+            var enumValues = Enum.GetValues(typeof(CapnpGen.CapParameterType));
             foreach (var enumValue in enumValues)
             {
                 string enumValueString = enumValue.ToString();
@@ -495,7 +612,7 @@ namespace Cooker.Cookers
 
                 if (valueString == enumValueString)
                 {
-                    value = (CapnpGen.ParameterType)enumValue;
+                    value = (CapnpGen.CapParameterType)enumValue;
                     return true;
                 }
             }
@@ -503,15 +620,15 @@ namespace Cooker.Cookers
             return false;
         }
 
-        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.SubType value)
+        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.CapSubType value)
         {
-            value = CapnpGen.SubType.@float;
+            value = CapnpGen.CapSubType.@float;
 
             if (node.Attributes[attribute] == null)
                 return false;
 
             string valueString = node.Attributes[attribute].Value;
-            var enumValues = Enum.GetValues(typeof(CapnpGen.SubType));
+            var enumValues = Enum.GetValues(typeof(CapnpGen.CapSubType));
             foreach (var enumValue in enumValues)
             {
                 string enumValueString = enumValue.ToString();
@@ -522,7 +639,7 @@ namespace Cooker.Cookers
 
                 if (valueString == enumValueString)
                 {
-                    value = (CapnpGen.SubType)enumValue;
+                    value = (CapnpGen.CapSubType)enumValue;
                     return true;
                 }
             }
@@ -530,24 +647,24 @@ namespace Cooker.Cookers
             return false;
         }
 
-        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.InputType value)
+        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.CapInputType value)
         {
-            value = CapnpGen.InputType.position;
+            value = CapnpGen.CapInputType.position;
 
             if (node.Attributes[attribute] == null)
                 return false;
 
-            return Enum.TryParse<CapnpGen.InputType>(node.Attributes[attribute].Value, out value);
+            return Enum.TryParse<CapnpGen.CapInputType>(node.Attributes[attribute].Value, out value);
         }
 
-        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.OutputType value)
+        static bool TryGetAttribute(XmlNode node, string attribute, out CapnpGen.CapOutputType value)
         {
-            value = CapnpGen.OutputType.color;
+            value = CapnpGen.CapOutputType.color;
 
             if (node.Attributes[attribute] == null)
                 return false;
 
-            return Enum.TryParse<CapnpGen.OutputType>(node.Attributes[attribute].Value, out value);
+            return Enum.TryParse<CapnpGen.CapOutputType>(node.Attributes[attribute].Value, out value);
         }
 
     }

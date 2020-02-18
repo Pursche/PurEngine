@@ -81,11 +81,14 @@ namespace Renderer
 
             CapModel::Reader capModel = iStreamReader.getRoot<CapModel>();
 
-            // Read vertex positions
+            // Read vertices
             for (CapVertex::Reader capVertex : capModel.getVertices())
             {
-                Vertex vertex(Vector3(capVertex.getPosition().getX(), capVertex.getPosition().getY(), capVertex.getPosition().getZ()));
-                data.vertices.push_back(vertex);
+                Vector3 position = Vector3(capVertex.getPosition().getX(), capVertex.getPosition().getY(), capVertex.getPosition().getZ());
+                Vector3 normal = Vector3(capVertex.getNormal().getX(), capVertex.getNormal().getY(), capVertex.getNormal().getZ());
+                Vector3 texCoord = Vector2(capVertex.getTexCoord().getX(), capVertex.getTexCoord().getY());
+
+                data.vertices.push_back(Vertex(position, normal, texCoord));
             }
 
             // Read indices

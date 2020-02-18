@@ -16,17 +16,14 @@ namespace Renderer
 {
     class RenderGraph;
 
+    constexpr int MAX_BOUND_TEXTURES = 8;
+
     struct GraphicsPipelineDesc
     {
-        static const int MAX_CONSTANT_BUFFERS = 8;
-        static const int MAX_INPUT_LAYOUTS = 8;
-        static const int MAX_BOUND_TEXTURES = 8;
-
         GraphicsPipelineDesc()
         {
             std::fill_n(textures, MAX_BOUND_TEXTURES, RenderPassResource::Invalid());
             std::fill_n(renderTargets, MAX_RENDER_TARGETS, RenderPassMutableResource::Invalid());
-            std::fill_n(textures, MAX_BOUND_TEXTURES, RenderPassResource::Invalid());
         }
 
         // This part of the descriptor is hashable in the PipelineHandler
@@ -38,6 +35,7 @@ namespace Renderer
             BlendState blendState;
             ConstantBufferState constantBufferStates[MAX_CONSTANT_BUFFERS];
             InputLayout inputLayouts[MAX_INPUT_LAYOUTS];
+            Sampler samplers[MAX_BOUND_TEXTURES];
 
             // Shaders
             VertexShaderID vertexShader = VertexShaderID::Invalid();

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "InstanceData.h"
 #include "Descriptors/ModelDesc.h"
+#include "Descriptors/MaterialDesc.h"
 
 namespace Renderer
 {
@@ -14,20 +15,29 @@ namespace Renderer
     public:
         typedef std::vector<InstanceData*> Instances;
         typedef type_safe::underlying_type<ModelID> _ModelID;
+        typedef type_safe::underlying_type<MaterialID> _MaterialID;
 
-        void RegisterModel(ModelID modelID, InstanceData* instanceData) { _models[static_cast<_ModelID>(modelID)].push_back(instanceData); }
+        typedef robin_hood::unordered_map<_ModelID, Instances> Models;
+        typedef robin_hood::unordered_map<_MaterialID, Models> Materials;
+
+        void RegisterModel(MaterialID materialID, ModelID modelID, InstanceData* instanceData) { _materials[static_cast<_MaterialID>(materialID)][static_cast<_ModelID>(modelID)].push_back(instanceData); }
         void Reset() 
         {
-            for (auto& model : _models)
+            for (auto& material : _materials)
             {
-                model.second.clear();
+                for (auto& model : material.second)
+                {
+                    model.second.clear();
+                }
+                material.second.clear();
             }
 
-            _models.clear(); 
+            _materials.clear();
         }
 
         //robin_hood::unordered_map<_ModelID, Instances>& GetModels() { return _models; }
-        robin_hood::unordered_map<_ModelID, Instances>& GetModels() { return _models; }
+        //robin_hood::unordered_map<_ModelID, Instances>& GetModels() { return _models; }
+        Materials& GetMaterials() { return _materials; }
 
         RenderLayer() {}
         ~RenderLayer()
@@ -39,7 +49,8 @@ namespace Renderer
         
 
     private:
-        robin_hood::unordered_map<_ModelID, Instances> _models;
+        //robin_hood::unordered_map<_ModelID, Instances> _models;
+        Materials _materials;
         //std::unordered_map<_ModelID, Instances> _models;
     };
 }

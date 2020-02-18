@@ -1,13 +1,13 @@
 @0xdd5ea4f8672425ee;
 
-enum FilterMode
+enum CapFilterMode
 {
     point @0;
     linear @1;
     anisotropic @2;
 }
 
-enum WrapMode
+enum CapWrapMode
 {
     clamp @0;
     wrap @1;
@@ -15,16 +15,16 @@ enum WrapMode
     border @3;
 }
 
-struct Sampler
+struct CapSampler
 {
     name @0 : Text;
-    filterXY @1 : FilterMode;
-    filterZ @2 : FilterMode;
-    wrapModeXY @3 : WrapMode;
-    wrapModeZ @4 : WrapMode;
+    filterXY @1 : CapFilterMode;
+    filterZ @2 : CapFilterMode;
+    wrapModeXY @3 : CapWrapMode;
+    wrapModeZ @4 : CapWrapMode;
 }
 
-enum BlendMode
+enum CapBlendMode
 {
     zero @0;
     one @1;
@@ -40,7 +40,7 @@ enum BlendMode
     invBlendFactor @11;
 }
 
-enum BlendOp
+enum CapBlendOp
 {
     add @0;
     subtract @1;
@@ -49,20 +49,20 @@ enum BlendOp
     max @4;
 }
 
-struct Blender
+struct CapBlender
 {
     name @0 : Text;
     enabled @1 : Bool;
     logicOpEnabled @2 : Bool;
-    srcBlendMode @3 : BlendMode;
-    destBlendMode @4 : BlendMode;
-    blendOp @5 : BlendOp;
-    srcAlphaBlendMode @6 : BlendMode;
-    destAlphaBlendMode @7 : BlendMode;
-    alphaBlendOp @8 : BlendOp;
+    srcBlendMode @3 : CapBlendMode;
+    destBlendMode @4 : CapBlendMode;
+    blendOp @5 : CapBlendOp;
+    srcAlphaBlendMode @6 : CapBlendMode;
+    destAlphaBlendMode @7 : CapBlendMode;
+    alphaBlendOp @8 : CapBlendOp;
 }
 
-enum ParameterType
+enum CapParameterType
 {
     texture1D @0;
     texture2D @1;
@@ -112,7 +112,7 @@ enum ParameterType
     color @43;
 }
 
-enum SubType
+enum CapSubType
 {
     float @0;
     float2 @1;
@@ -128,53 +128,75 @@ enum SubType
     uint4 @11;
 }
 
-struct Parameter
+struct CapParameter
 {
     name @0 : Text;
-    type @1 : ParameterType;
-    subType @2 : SubType;
+    type @1 : CapParameterType;
+    subType @2 : CapSubType;
 }
 
-enum InputType
+enum CapInputType
 {
     position @0;
-    color @1;
-    primitiveID @2;
+    normal @1;
+    texCoord @2;
+    primitiveID @3;
 }
 
-struct Input
+struct CapInput
 {
     name @0 : Text;
-    type @1 : InputType;
+    type @1 : CapInputType;
+    path @2 : Text;
 }
 
-enum OutputType
+enum CapOutputType
 {
     color @0;
     depth @1;
 }
 
-struct Output
+struct CapOutput
 {
     name @0 : Text;
-    type @1 : OutputType;
-    subType @2 : SubType;
-    blender @3 : Blender;
+    type @1 : CapOutputType;
+    subType @2 : CapSubType;
+    blender @3 : CapBlender;
 }
 
-struct MaterialDescriptor
+struct CapMaterialHeader
 {
     name @0 : Text;
     
-    parameters @1 : List(Parameter);
-    samplers @2 : List(Sampler);
+    parameters @1 : List(CapParameter);
+    samplers @2 : List(CapSampler);
 
-    inputs @3 : List(Input);
-    outputs @4 : List(Output);
+    inputs @3 : List(CapInput);
+    outputs @4 : List(CapOutput);
 }
 
-struct Material
+struct CapMaterial
 {
-    descriptor @0 : MaterialDescriptor;
+    header @0 : CapMaterialHeader;
     psBody @1 : Text;
+}
+
+struct CapMaterialTexture
+{
+    name @0 : Text;
+    path @1 : Text;
+    contentPath @2 : Text;
+}
+
+struct CapMaterialInstanceHeader
+{
+    name @0 : Text;
+    materialHeader @1 : CapMaterialHeader;
+    textures @2 : List(CapMaterialTexture);
+}
+
+struct CapMaterialInstance
+{
+    header @0 : CapMaterialInstanceHeader;
+    material @1 : CapMaterial;
 }

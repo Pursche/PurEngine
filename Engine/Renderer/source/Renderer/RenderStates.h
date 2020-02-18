@@ -138,7 +138,7 @@ namespace Renderer
     struct BlendState
     {
         bool alphaToCoverageEnable = false;
-        bool independencBlendEnable = false;
+        bool independentBlendEnable = false;
         RTBlendState renderTargets[MAX_RENDER_TARGETS];
     };
 
@@ -196,6 +196,7 @@ namespace Renderer
         SHADER_VISIBILITY_PIXEL
     };
 
+    constexpr int MAX_CONSTANT_BUFFERS = 8;
     struct ConstantBufferState
     {
         bool enabled = false;
@@ -333,6 +334,7 @@ namespace Renderer
     };
 
     constexpr int INPUT_LAYOUT_NAME_MAX_LENGTH = 16;
+    constexpr int MAX_INPUT_LAYOUTS = 8;
     struct InputLayout
     {
         bool enabled = false;
@@ -377,9 +379,81 @@ namespace Renderer
 
     struct ScissorRect
     {
-        i32 left;
-        i32 top;
-        i32 right;
-        i32 bottom;
+        i32 left = 0;
+        i32 top = 0;
+        i32 right = 0;
+        i32 bottom = 0;
+    };
+
+    enum SamplerFilter
+    {
+        SAMPLER_FILTER_MIN_MAG_MIP_POINT,
+        SAMPLER_FILTER_MIN_MAG_POINT_MIP_LINEAR,
+        SAMPLER_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT,
+        SAMPLER_FILTER_MIN_POINT_MAG_MIP_LINEAR,
+        SAMPLER_FILTER_MIN_LINEAR_MAG_MIP_POINT,
+        SAMPLER_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR,
+        SAMPLER_FILTER_MIN_MAG_LINEAR_MIP_POINT,
+        SAMPLER_FILTER_MIN_MAG_MIP_LINEAR,
+        SAMPLER_FILTER_ANISOTROPIC,
+        SAMPLER_FILTER_COMPARISON_MIN_MAG_MIP_POINT,
+        SAMPLER_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR,
+        SAMPLER_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT,
+        SAMPLER_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR,
+        SAMPLER_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT,
+        SAMPLER_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR,
+        SAMPLER_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT,
+        SAMPLER_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR,
+        SAMPLER_FILTER_COMPARISON_ANISOTROPIC,
+        SAMPLER_FILTER_MINIMUM_MIN_MAG_MIP_POINT,
+        SAMPLER_FILTER_MINIMUM_MIN_MAG_POINT_MIP_LINEAR,
+        SAMPLER_FILTER_MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT,
+        SAMPLER_FILTER_MINIMUM_MIN_POINT_MAG_MIP_LINEAR,
+        SAMPLER_FILTER_MINIMUM_MIN_LINEAR_MAG_MIP_POINT,
+        SAMPLER_FILTER_MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR,
+        SAMPLER_FILTER_MINIMUM_MIN_MAG_LINEAR_MIP_POINT,
+        SAMPLER_FILTER_MINIMUM_MIN_MAG_MIP_LINEAR,
+        SAMPLER_FILTER_MINIMUM_ANISOTROPIC,
+        SAMPLER_FILTER_MAXIMUM_MIN_MAG_MIP_POINT,
+        SAMPLER_FILTER_MAXIMUM_MIN_MAG_POINT_MIP_LINEAR,
+        SAMPLER_FILTER_MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT,
+        SAMPLER_FILTER_MAXIMUM_MIN_POINT_MAG_MIP_LINEAR,
+        SAMPLER_FILTER_MAXIMUM_MIN_LINEAR_MAG_MIP_POINT,
+        SAMPLER_FILTER_MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR,
+        SAMPLER_FILTER_MAXIMUM_MIN_MAG_LINEAR_MIP_POINT,
+        SAMPLER_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR,
+        SAMPLER_FILTER_MAXIMUM_ANISOTROPIC
+    };
+
+    enum TextureAddressMode
+    {
+        TEXTURE_ADDRESS_MODE_WRAP,
+        TEXTURE_ADDRESS_MODE_MIRROR,
+        TEXTURE_ADDRESS_MODE_CLAMP,
+        TEXTURE_ADDRESS_MODE_BORDER,
+        TEXTURE_ADDRESS_MODE_MIRROR_ONCE
+    };
+
+    enum StaticBorderColor
+    {
+        STATIC_BORDER_COLOR_TRANSPARENT_BLACK,
+        STATIC_BORDER_COLOR_OPAQUE_BLACK,
+        STATIC_BORDER_COLOR_OPAQUE_WHITE
+    };
+
+    struct Sampler
+    {
+        bool enabled = false;
+        SamplerFilter filter = SAMPLER_FILTER_MIN_MAG_MIP_POINT;
+        TextureAddressMode addressU = TEXTURE_ADDRESS_MODE_CLAMP;
+        TextureAddressMode addressV = TEXTURE_ADDRESS_MODE_CLAMP;
+        TextureAddressMode addressW = TEXTURE_ADDRESS_MODE_CLAMP;
+        f32 mipLODBias = 0.0f;
+        u32 maxAnisotropy = 0;
+        ComparisonFunc comparisonFunc = COMPARISON_FUNC_NEVER;
+        StaticBorderColor borderColor = STATIC_BORDER_COLOR_OPAQUE_BLACK;
+        f32 minLOD = 0.0f;
+        f32 maxLOD = std::numeric_limits<f32>::max();
+        ShaderVisibility shaderVisibility = SHADER_VISIBILITY_PIXEL;
     };
 }

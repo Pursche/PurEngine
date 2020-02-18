@@ -35,6 +35,7 @@ namespace Renderer
         void PopMarker();
 
         void SetPipeline(GraphicsPipelineID pipelineID);
+        void SetPipeline(MaterialPipelineID pipelineID);
         void SetScissorRect(u32 left, u32 right, u32 top, u32 bottom);
         void SetViewport(f32 topLeftX, f32 topLeftY, f32 width, f32 height, f32 minDepth, f32 maxDepth);
         void SetConstantBuffer(u32 slot, void* gpuResource);

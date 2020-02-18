@@ -19,6 +19,7 @@ namespace Renderer
         const BackendDispatchFunction PushMarker::DISPATCH_FUNCTION = &BackendDispatch::PushMarker;
         const BackendDispatchFunction SetConstantBuffer::DISPATCH_FUNCTION = &BackendDispatch::SetConstantBuffer;
         const BackendDispatchFunction SetGraphicsPipeline::DISPATCH_FUNCTION = &BackendDispatch::SetGraphicsPipeline;
+        const BackendDispatchFunction SetMaterialPipeline::DISPATCH_FUNCTION = &BackendDispatch::SetMaterialPipeline;
         const BackendDispatchFunction SetComputePipeline::DISPATCH_FUNCTION = &BackendDispatch::SetComputePipeline;
         const BackendDispatchFunction SetScissorRect::DISPATCH_FUNCTION = &BackendDispatch::SetScissorRect;
         const BackendDispatchFunction SetViewport::DISPATCH_FUNCTION = &BackendDispatch::SetViewport;

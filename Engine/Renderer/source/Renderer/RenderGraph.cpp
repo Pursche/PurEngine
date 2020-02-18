@@ -71,4 +71,20 @@ namespace Renderer
             return _renderGraphBuilder->GetDepthImage(resource);
         };
     }
+
+    void RenderGraph::InitializePipelineDesc(MaterialPipelineDesc& desc)
+    {
+        desc.ResourceToDepthImageID = [&](RenderPassResource resource)
+        {
+            return _renderGraphBuilder->GetDepthImage(resource);
+        };
+        desc.MutableResourceToImageID = [&](RenderPassMutableResource resource)
+        {
+            return _renderGraphBuilder->GetImage(resource);
+        };
+        desc.MutableResourceToDepthImageID = [&](RenderPassMutableResource resource)
+        {
+            return _renderGraphBuilder->GetDepthImage(resource);
+        };
+    }
 }

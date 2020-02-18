@@ -52,6 +52,10 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     Renderer::DepthImageID mainDepth = renderer->CreateDepthImage(mainDepthDesc);
 
     Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MAIN_RENDER_LAYER);
+
+    Renderer::MaterialDesc materialDesc;
+    materialDesc.path = "Data/materials/DebugBasicPBS.material";
+    Renderer::MaterialID material = renderer->LoadMaterial(materialDesc);
     
     Renderer::ModelDesc modelDesc;
     modelDesc.path = "Data/models/cube.model";
@@ -60,7 +64,7 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
     Renderer::InstanceData cubeInstance;
     cubeInstance.modelMatrix = Matrix(); // Move, rotate etc the model here
 
-    mainLayer.RegisterModel(cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
+    mainLayer.RegisterModel(material, cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
 
     // ViewConstantBuffer will be a constant buffer which holds information about our Camera, like our View and Projection matrices
     struct ViewConstantBuffer
@@ -130,12 +134,12 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         viewConstantBuffer.Apply(frameIndex);
 
         // Register models to be rendered
-        mainLayer.RegisterModel(cubeModel, &cubeInstance);
+        mainLayer.RegisterModel(material, cubeModel, &cubeInstance);
 
         // Create a framegraph
         Renderer::RenderGraphDesc renderGraphDesc;
         renderGraphDesc.allocator = &frameAllocator;
-        Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc); // TODO(important): Fix RenderGraph memory allocation, maybe a per-frame allocator?
+        Renderer::RenderGraph renderGraph = renderer->CreateRenderGraph(renderGraphDesc);
 
         // Depth Prepass
         {
@@ -172,6 +176,14 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                 pipelineDesc.states.inputLayouts[0].SetName("POSITION");
                 pipelineDesc.states.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
                 pipelineDesc.states.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
+                pipelineDesc.states.inputLayouts[1].enabled = true;
+                pipelineDesc.states.inputLayouts[1].SetName("NORMAL");
+                pipelineDesc.states.inputLayouts[1].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
+                pipelineDesc.states.inputLayouts[1].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
+                pipelineDesc.states.inputLayouts[2].enabled = true;
+                pipelineDesc.states.inputLayouts[2].SetName("TEXCOORD");
+                pipelineDesc.states.inputLayouts[2].format = Renderer::InputFormat::INPUT_FORMAT_R32G32_FLOAT;
+                pipelineDesc.states.inputLayouts[2].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
 
                 // Depth state
                 pipelineDesc.states.depthStencilState.depthEnable = true;
@@ -201,23 +213,28 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                 // Render main layer
                 Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MAIN_RENDER_LAYER);
 
-                for (auto const& model : mainLayer.GetModels())
+                for (auto const& material : mainLayer.GetMaterials())
                 {
-                    auto const& modelID = Renderer::ModelID(model.first);
-                    auto const& instances = model.second;
+                    auto const& models = material.second;
 
-                    for (auto const& instance : instances)
+                    for (auto const& model : models)
                     {
-                        // Update model constant buffer
-                        modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
-                        modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
-                        modelConstantBuffer.Apply(frameIndex);
+                        auto const& modelID = Renderer::ModelID(model.first);
+                        auto const& instances = model.second;
 
-                        // Set model constant buffer
-                        commandList.SetConstantBuffer(1, modelConstantBuffer.GetGPUResource(frameIndex));
+                        for (auto const& instance : instances)
+                        {
+                            // Update model constant buffer
+                            modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
+                            modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
+                            modelConstantBuffer.Apply(frameIndex);
 
-                        // Draw
-                        commandList.Draw(modelID);
+                            // Set model constant buffer
+                            commandList.SetConstantBuffer(1, modelConstantBuffer.GetGPUResource(frameIndex));
+
+                            // Draw
+                            commandList.Draw(modelID);
+                        }
                     }
                 }
             });
@@ -241,77 +258,64 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                 },
                 [&](MainPassData& data, Renderer::CommandList& commandList) // Execute
                 {
-                    Renderer::GraphicsPipelineDesc pipelineDesc;
-                    renderGraph.InitializePipelineDesc(pipelineDesc);
-
-                    // Shaders
-                    Renderer::VertexShaderDesc vertexShaderDesc;
-                    vertexShaderDesc.path = "Data/shaders/test.vs.hlsl.cso";
-                    pipelineDesc.states.vertexShader = renderer->LoadShader(vertexShaderDesc);
-
-                    Renderer::PixelShaderDesc pixelShaderDesc;
-                    pixelShaderDesc.path = "Data/shaders/test.ps.hlsl.cso";
-                    pipelineDesc.states.pixelShader = renderer->LoadShader(pixelShaderDesc);
-
-                    // Constant buffers  TODO: Improve on this, if I set state 0 and 3 it won't work etc...
-                    pipelineDesc.states.constantBufferStates[0].enabled = true; // ViewCB
-                    pipelineDesc.states.constantBufferStates[0].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
-                    pipelineDesc.states.constantBufferStates[1].enabled = true; // ModelCB
-                    pipelineDesc.states.constantBufferStates[1].shaderVisibility = Renderer::ShaderVisibility::SHADER_VISIBILITY_VERTEX;
-
-                    // Input layouts TODO: Improve on this, if I set state 0 and 3 it won't work etc... Maybe responsibility for this should be moved to ModelHandler and the cooker?
-                    pipelineDesc.states.inputLayouts[0].enabled = true;
-                    pipelineDesc.states.inputLayouts[0].SetName("POSITION");
-                    pipelineDesc.states.inputLayouts[0].format = Renderer::InputFormat::INPUT_FORMAT_R32G32B32_FLOAT;
-                    pipelineDesc.states.inputLayouts[0].inputClassification = Renderer::InputClassification::INPUT_CLASSIFICATION_PER_VERTEX;
-
-                    // Depth state
-                    pipelineDesc.states.depthStencilState.depthEnable = true;
-                    pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_EQUAL;
-
-                    // Rasterizer state
-                    pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_BACK;
-
-                    // Textures
-
-                    // Render targets
-                    pipelineDesc.renderTargets[0] = data.mainColor;
-                    pipelineDesc.depthStencil = data.depth;
-
-                    // Set pipeline
-                    Renderer::GraphicsPipelineID pipeline = renderer->CreatePipeline(pipelineDesc); // This will compile the pipeline and return the ID, or just return ID of cached pipeline
-                    commandList.SetPipeline(pipeline);
-
-                    // Set viewport and scissor rect
-                    commandList.SetScissorRect(0, width, 0, height);
-                    commandList.SetViewport(0, 0, static_cast<f32>(width), static_cast<f32>(height), 0.0f, 1.0f);
-
-                    // Set view constant buffer
-                    commandList.SetConstantBuffer(0, viewConstantBuffer.GetGPUResource(frameIndex));
-
                     // Clear mainColor TODO: This should be handled by the parameter in Setup, and it should definitely not act on ImageID and DepthImageID
                     commandList.Clear(mainColor, Vector4(0, 0, 0, 1));
 
                     // Render main layer
                     Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MAIN_RENDER_LAYER);
 
-                    for (auto const& model : mainLayer.GetModels())
+                    for (auto const& material : mainLayer.GetMaterials())
                     {
-                        auto const& modelID = Renderer::ModelID(model.first);
-                        auto const& instances = model.second;
+                        // Set Material pipeline
+                        auto const& materialID = Renderer::MaterialID(material.first);
 
-                        for (auto const& instance : instances)
+                        Renderer::MaterialPipelineDesc pipelineDesc;
+                        renderGraph.InitializePipelineDesc(pipelineDesc);
+
+                        pipelineDesc.material = materialID;
+
+                        // Depth state
+                        pipelineDesc.states.depthStencilState.depthEnable = true;
+                        pipelineDesc.states.depthStencilState.depthFunc = Renderer::ComparisonFunc::COMPARISON_FUNC_EQUAL;
+
+                        // Rasterizer state
+                        pipelineDesc.states.rasterizerState.cullMode = Renderer::CullMode::CULL_MODE_BACK;
+
+                        // Render targets
+                        pipelineDesc.renderTargets[0] = data.mainColor;
+                        pipelineDesc.depthStencil = data.depth;
+
+                        // Set pipeline
+                        Renderer::MaterialPipelineID pipeline = renderer->CreatePipeline(pipelineDesc); // This will compile the pipeline and return the ID, or just return ID of cached pipeline
+                        commandList.SetPipeline(pipeline);
+
+                        // Set viewport and scissor rect
+                        commandList.SetScissorRect(0, width, 0, height);
+                        commandList.SetViewport(0, 0, static_cast<f32>(width), static_cast<f32>(height), 0.0f, 1.0f);
+
+                        // Set view constant buffer
+                        commandList.SetConstantBuffer(0, viewConstantBuffer.GetGPUResource(frameIndex));
+
+                        auto const& models = material.second;
+
+                        for (auto const& model : models)
                         {
-                            // Update model constant buffer
-                            modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
-                            modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
-                            modelConstantBuffer.Apply(frameIndex);
+                            auto const& modelID = Renderer::ModelID(model.first);
+                            auto const& instances = model.second;
 
-                            // Set model constant buffer
-                            commandList.SetConstantBuffer(1, modelConstantBuffer.GetGPUResource(frameIndex));
+                            for (auto const& instance : instances)
+                            {
+                                // Update model constant buffer
+                                modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
+                                modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
+                                modelConstantBuffer.Apply(frameIndex);
 
-                            // Draw
-                            commandList.Draw(modelID);
+                                // Set model constant buffer
+                                commandList.SetConstantBuffer(1, modelConstantBuffer.GetGPUResource(frameIndex));
+
+                                // Draw
+                                commandList.Draw(modelID);
+                            }
                         }
                     }
             });

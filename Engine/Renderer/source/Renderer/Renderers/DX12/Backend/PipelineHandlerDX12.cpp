@@ -4,6 +4,7 @@
 #include "RenderDeviceDX12.h"
 #include "ShaderHandlerDX12.h"
 #include "ImageHandlerDX12.h"
+#include "MaterialHandlerDX12.h"
 #include "d3dx12.h"
 #include <Utils/StringUtils.h>
 #include <Utils/XXHash64.h>
@@ -79,39 +80,88 @@ namespace Renderer
                 if (texture == RenderPassResource::Invalid())
                     break;
 
-                numRootDescriptors++;
                 numSRVs++;
             }
-            
-            // Create root descriptors
-            std::vector<D3D12_ROOT_DESCRIPTOR> rootDescriptors(numRootDescriptors);
-            for(u32 i = 0; i < numRootDescriptors; i++)
+
+            // If we have SRVs we need one more root descriptor
+            if (numSRVs > 0)
             {
-                rootDescriptors[i].RegisterSpace = 0;
-                rootDescriptors[i].ShaderRegister = i;
+                numRootDescriptors++;
+            }
+            
+            // Create CB root descriptors
+            std::vector<D3D12_ROOT_DESCRIPTOR> cbRootDescriptors(numConstantBuffers);
+            for(u32 i = 0; i < numConstantBuffers; i++)
+            {
+                cbRootDescriptors[i].RegisterSpace = 0;
+                cbRootDescriptors[i].ShaderRegister = i;
             }
 
+            // Create SRV descriptor range
+            D3D12_DESCRIPTOR_RANGE descriptorTableRange;
+            descriptorTableRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+            descriptorTableRange.NumDescriptors = numSRVs;
+            descriptorTableRange.BaseShaderRegister = 0;
+            descriptorTableRange.RegisterSpace = 0;
+            descriptorTableRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+            // Create SRV descriptor table
+            D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable;
+            descriptorTable.NumDescriptorRanges = 1; // we only have one range
+            descriptorTable.pDescriptorRanges = &descriptorTableRange; // the pointer to the beginning of our ranges array
+
             // Create root parameters
-            std::vector<D3D12_ROOT_PARAMETER> rootParameters(numRootDescriptors);
             // Create CB root parameters
+            std::vector<D3D12_ROOT_PARAMETER> rootParameters(numRootDescriptors);
             for (u32 i = 0; i < numConstantBuffers; i++)
             {
                 rootParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-                rootParameters[i].Descriptor = rootDescriptors[i];
+                rootParameters[i].Descriptor = cbRootDescriptors[i];
                 rootParameters[i].ShaderVisibility = ToD3D12ShaderVisibility(desc.states.constantBufferStates[i].shaderVisibility);
             }
             // Create SRV root parameters
-            for (u32 i = numConstantBuffers; i < numRootDescriptors; i++)
+            if (numSRVs > 0)
             {
-                rootParameters[i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
-                rootParameters[i].Descriptor = rootDescriptors[i];
-                rootParameters[i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+                u32 rootParamIndex = numConstantBuffers;
+                rootParameters[rootParamIndex].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                rootParameters[rootParamIndex].DescriptorTable = descriptorTable;
+                rootParameters[rootParamIndex].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+            }
+
+            // Create samplers
+            u8 numSamplers = 0;
+            for (u32 i = 0; i < MAX_BOUND_TEXTURES; i++)
+            {
+                if (desc.states.samplers[i].enabled == false)
+                    break;
+
+                numSamplers++;
+            }
+
+            std::vector<D3D12_STATIC_SAMPLER_DESC> samplers(numSamplers);
+            for (int i = 0; i < numSamplers; i++)
+            {
+                samplers[i].RegisterSpace = 0;
+                samplers[i].ShaderRegister = i;
+                
+
+                samplers[i].Filter = ToFilter(desc.states.samplers[i].filter);
+                samplers[i].AddressU = ToTextureAddressMode(desc.states.samplers[i].addressU);
+                samplers[i].AddressV = ToTextureAddressMode(desc.states.samplers[i].addressV);
+                samplers[i].AddressW = ToTextureAddressMode(desc.states.samplers[i].addressW);
+                samplers[i].MipLODBias = desc.states.samplers[i].mipLODBias;
+                samplers[i].MaxAnisotropy = desc.states.samplers[i].maxAnisotropy;
+                samplers[i].ComparisonFunc = ToComparisonFunc(desc.states.samplers[i].comparisonFunc);
+                samplers[i].BorderColor = ToStaticBorderColor(desc.states.samplers[i].borderColor);
+                samplers[i].MinLOD = desc.states.samplers[i].minLOD;
+                samplers[i].MaxLOD = desc.states.samplers[i].maxLOD;
+                samplers[i].ShaderVisibility = ToD3D12ShaderVisibility(desc.states.samplers[i].shaderVisibility);
             }
 
             // Create root signature
             CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
             rootSignatureDesc.Init(numRootDescriptors, rootParameters.data(),
-                0, nullptr, // TODO: Sampler support
+                numSamplers, samplers.data(),
                 CalculateRootSigFlags(rootParameters)
             );
 
@@ -203,6 +253,75 @@ namespace Renderer
             _graphicsPipelines.push_back(pipeline);
 
             return GraphicsPipelineID(static_cast<gIDType>(nextID));
+        }
+
+        MaterialPipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* device, ShaderHandlerDX12* shaderHandler, ImageHandlerDX12* imageHandler, MaterialHandlerDX12* materialHandler, const MaterialPipelineDesc& mDesc)
+        {
+            // A Material pipeline is just a regular Graphics pipeline, but with some of the information supplied by the material
+            // So we translate the MaterialPipelineDesc into a GraphicsPipelineDesc here
+            GraphicsPipelineDesc gDesc;
+
+            // Shaders from material
+            gDesc.states.vertexShader = materialHandler->GetVertexShader(mDesc.material);
+            gDesc.states.pixelShader = materialHandler->GetPixelShader(mDesc.material);
+
+            // States
+            // From descriptor
+            gDesc.states.rasterizerState = mDesc.states.rasterizerState;
+            gDesc.states.depthStencilState = mDesc.states.depthStencilState;
+
+            // From material
+            gDesc.states.blendState = materialHandler->GetBlendState(mDesc.material);
+            
+            u8 numConstantBuffers = materialHandler->GetNumConstantBufferStates(mDesc.material);
+            for (int i = 0; i < numConstantBuffers; i++)
+            {
+                gDesc.states.constantBufferStates[i] = materialHandler->GetConstantBufferState(mDesc.material, i);
+            }
+
+            u8 numInputLayouts = materialHandler->GetNumInputLayouts(mDesc.material);
+            for (int i = 0; i < numInputLayouts; i++)
+            {
+                gDesc.states.inputLayouts[i] = materialHandler->GetInputLayout(mDesc.material, i);
+            }
+
+            u8 numSamplers = materialHandler->GetNumSamplers(mDesc.material);
+            for (int i = 0; i < numSamplers; i++)
+            {
+                gDesc.states.samplers[i] = materialHandler->GetSampler(mDesc.material, i);
+            }
+
+            // Functions from descriptor
+            gDesc.ResourceToImageID = [](RenderPassResource resource) 
+            {
+                using resourceType = type_safe::underlying_type<RenderPassResource>;
+                return ImageID(static_cast<resourceType>(resource)); // This ONLY works in the case of material textures, everything else should go through the renderpass Setup lambda
+            };
+            gDesc.ResourceToDepthImageID = mDesc.ResourceToDepthImageID;
+            gDesc.MutableResourceToImageID = mDesc.MutableResourceToImageID;
+            gDesc.MutableResourceToDepthImageID = mDesc.MutableResourceToDepthImageID;
+
+            u8 numTextures = materialHandler->GetNumTextures(mDesc.material);
+
+            // Textures from descriptor
+            for (int i = 0; i < numTextures; i++)
+            {
+                TextureID texture = materialHandler->GetTexture(mDesc.material, i);
+                using _TextureID = type_safe::underlying_type<TextureID>;
+                gDesc.textures[i] = RenderPassResource(static_cast<_TextureID>(texture));
+            }
+
+            // Rendertargets from descriptor
+            for (int i = 0; i < MAX_RENDER_TARGETS; i++)
+            {
+                gDesc.renderTargets[i] = mDesc.renderTargets[i];
+            }
+            gDesc.depthStencil = mDesc.depthStencil;
+
+            gIDType pipeline = static_cast<gIDType>(CreatePipeline(device, shaderHandler, imageHandler, gDesc));
+            _graphicsPipelines[pipeline].materialDesc = mDesc;
+            // And then use the regular CreatePipeline for GraphicsPipelineDesc function
+            return MaterialPipelineID(pipeline);
         }
 
         ComputePipelineID PipelineHandlerDX12::CreatePipeline(RenderDeviceDX12* /*device*/, ShaderHandlerDX12* /*shaderHandler*/, ImageHandlerDX12* /*imageHandler*/, const ComputePipelineDesc& desc)
@@ -432,7 +551,7 @@ namespace Renderer
             D3D12_BLEND_DESC blendDesc;
 
             blendDesc.AlphaToCoverageEnable = blendState.alphaToCoverageEnable;
-            blendDesc.IndependentBlendEnable = blendState.independencBlendEnable;
+            blendDesc.IndependentBlendEnable = blendState.independentBlendEnable;
 
             for (int i = 0; i < MAX_RENDER_TARGETS; i++)
             {
@@ -629,6 +748,83 @@ namespace Renderer
             }
 
             return D3D12_STENCIL_OP_KEEP;
+        }
+
+        D3D12_FILTER PipelineHandlerDX12::ToFilter(const SamplerFilter& samplerFilter)
+        {
+            switch (samplerFilter)
+            {
+                case SAMPLER_FILTER_MIN_MAG_MIP_POINT:                          return D3D12_FILTER_MIN_MAG_MIP_POINT;
+                case SAMPLER_FILTER_MIN_MAG_POINT_MIP_LINEAR:                   return D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
+                case SAMPLER_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT:             return D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
+                case SAMPLER_FILTER_MIN_POINT_MAG_MIP_LINEAR:                   return D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
+                case SAMPLER_FILTER_MIN_LINEAR_MAG_MIP_POINT:                   return D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+                case SAMPLER_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR:            return D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+                case SAMPLER_FILTER_MIN_MAG_LINEAR_MIP_POINT:                   return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+                case SAMPLER_FILTER_MIN_MAG_MIP_LINEAR:                         return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+                case SAMPLER_FILTER_ANISOTROPIC:                                return D3D12_FILTER_ANISOTROPIC;
+                case SAMPLER_FILTER_COMPARISON_MIN_MAG_MIP_POINT:               return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+                case SAMPLER_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR:        return D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR;
+                case SAMPLER_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT:  return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT;
+                case SAMPLER_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR:        return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR;
+                case SAMPLER_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT:        return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
+                case SAMPLER_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR: return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+                case SAMPLER_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT:        return D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+                case SAMPLER_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR:              return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+                case SAMPLER_FILTER_COMPARISON_ANISOTROPIC:                     return D3D12_FILTER_COMPARISON_ANISOTROPIC;
+                case SAMPLER_FILTER_MINIMUM_MIN_MAG_MIP_POINT:                  return D3D12_FILTER_MINIMUM_MIN_MAG_MIP_POINT;
+                case SAMPLER_FILTER_MINIMUM_MIN_MAG_POINT_MIP_LINEAR:           return D3D12_FILTER_MINIMUM_MIN_MAG_POINT_MIP_LINEAR;
+                case SAMPLER_FILTER_MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT:     return D3D12_FILTER_MINIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT;
+                case SAMPLER_FILTER_MINIMUM_MIN_POINT_MAG_MIP_LINEAR:           return D3D12_FILTER_MINIMUM_MIN_POINT_MAG_MIP_LINEAR;
+                case SAMPLER_FILTER_MINIMUM_MIN_LINEAR_MAG_MIP_POINT:           return D3D12_FILTER_MINIMUM_MIN_LINEAR_MAG_MIP_POINT;
+                case SAMPLER_FILTER_MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR:    return D3D12_FILTER_MINIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+                case SAMPLER_FILTER_MINIMUM_MIN_MAG_LINEAR_MIP_POINT:           return D3D12_FILTER_MINIMUM_MIN_MAG_LINEAR_MIP_POINT;
+                case SAMPLER_FILTER_MINIMUM_MIN_MAG_MIP_LINEAR:                 return D3D12_FILTER_MINIMUM_MIN_MAG_MIP_LINEAR;
+                case SAMPLER_FILTER_MINIMUM_ANISOTROPIC:                        return D3D12_FILTER_MINIMUM_ANISOTROPIC;
+                case SAMPLER_FILTER_MAXIMUM_MIN_MAG_MIP_POINT:                  return D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_POINT;
+                case SAMPLER_FILTER_MAXIMUM_MIN_MAG_POINT_MIP_LINEAR:           return D3D12_FILTER_MAXIMUM_MIN_MAG_POINT_MIP_LINEAR;
+                case SAMPLER_FILTER_MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT:     return D3D12_FILTER_MAXIMUM_MIN_POINT_MAG_LINEAR_MIP_POINT;
+                case SAMPLER_FILTER_MAXIMUM_MIN_POINT_MAG_MIP_LINEAR:           return D3D12_FILTER_MAXIMUM_MIN_POINT_MAG_MIP_LINEAR;
+                case SAMPLER_FILTER_MAXIMUM_MIN_LINEAR_MAG_MIP_POINT:           return D3D12_FILTER_MAXIMUM_MIN_LINEAR_MAG_MIP_POINT;
+                case SAMPLER_FILTER_MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR:    return D3D12_FILTER_MAXIMUM_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+                case SAMPLER_FILTER_MAXIMUM_MIN_MAG_LINEAR_MIP_POINT:           return D3D12_FILTER_MAXIMUM_MIN_MAG_LINEAR_MIP_POINT;
+                case SAMPLER_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR:                 return D3D12_FILTER_MAXIMUM_MIN_MAG_MIP_LINEAR;
+                case SAMPLER_FILTER_MAXIMUM_ANISOTROPIC:                        return D3D12_FILTER_MAXIMUM_ANISOTROPIC;
+                default:
+                    assert(false); // Did we change SamplerFilter without updating this function?
+            }
+
+            return D3D12_FILTER_MIN_MAG_MIP_POINT;
+        }
+
+        D3D12_TEXTURE_ADDRESS_MODE PipelineHandlerDX12::ToTextureAddressMode(const TextureAddressMode& textureAddressMode)
+        {
+            switch (textureAddressMode)
+            {
+                case TEXTURE_ADDRESS_MODE_WRAP:         return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+                case TEXTURE_ADDRESS_MODE_MIRROR:       return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+                case TEXTURE_ADDRESS_MODE_CLAMP:        return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+                case TEXTURE_ADDRESS_MODE_BORDER:       return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+                case TEXTURE_ADDRESS_MODE_MIRROR_ONCE:  return D3D12_TEXTURE_ADDRESS_MODE_MIRROR_ONCE;
+                default:
+                    assert(false); // Did we change TextureAddressMode without updating this function?
+            }
+
+            return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        }
+
+        D3D12_STATIC_BORDER_COLOR PipelineHandlerDX12::ToStaticBorderColor(const StaticBorderColor& staticBorderColor)
+        {
+            switch (staticBorderColor)
+            {
+                case STATIC_BORDER_COLOR_TRANSPARENT_BLACK:     return D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+                case STATIC_BORDER_COLOR_OPAQUE_BLACK:          return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+                case STATIC_BORDER_COLOR_OPAQUE_WHITE:          return D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+                default:
+                    assert(false); // Did we change StaticBorderColor without updating this function?
+            }
+
+            return D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
         }
 
         D3D12_ROOT_SIGNATURE_FLAGS PipelineHandlerDX12::CalculateRootSigFlags(std::vector<D3D12_ROOT_PARAMETER>& parameters)

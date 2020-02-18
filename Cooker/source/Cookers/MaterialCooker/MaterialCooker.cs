@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Capnp;
 
 namespace Cooker.Cookers
 {
@@ -72,7 +73,7 @@ namespace Cooker.Cookers
             }
 
             // Parse all samplers
-            List<CapnpGen.Sampler> samplers = new List<CapnpGen.Sampler>();
+            List<CapnpGen.CapSampler> samplers = new List<CapnpGen.CapSampler>();
             XmlNodeList samplerNodes = materialFileNode.SelectNodes("Sampler");
             foreach(XmlNode samplerNode in samplerNodes)
             {
@@ -83,7 +84,7 @@ namespace Cooker.Cookers
             }
 
             // Parse all blenders
-            List<CapnpGen.Blender> blenders = new List<CapnpGen.Blender>();
+            List<CapnpGen.CapBlender> blenders = new List<CapnpGen.CapBlender>();
             XmlNodeList blenderNodes = materialFileNode.SelectNodes("Blender");
             foreach (XmlNode blenderNode in blenderNodes)
             {
@@ -94,7 +95,7 @@ namespace Cooker.Cookers
             }
 
             // Parse all materials
-            List<CapnpGen.Material> materials = new List<CapnpGen.Material>();
+            List<CapnpGen.CapMaterial> materials = new List<CapnpGen.CapMaterial>();
             XmlNodeList materialNodes = materialFileNode.SelectNodes("Material");
             foreach(XmlNode materialNode in materialNodes)
             {
@@ -104,14 +105,52 @@ namespace Cooker.Cookers
                 }
             }
 
+            // Parse all material instances
+            List<CapnpGen.CapMaterialInstance> materialInstances = new List<CapnpGen.CapMaterialInstance>();
+            XmlNodeList materialInstanceNodes = materialFileNode.SelectNodes("MaterialInstance");
+            foreach(XmlNode materialInstanceNode in materialInstanceNodes)
+            {
+                if (!MaterialParser.ParseMaterialInstance(materialInstanceNode, materialInstances, materials, materialPath, out error))
+                {
+                    return false;
+                }
+            }
+
             // Compile all materials
-            foreach(CapnpGen.Material material in materials)
+            foreach(CapnpGen.CapMaterial material in materials)
             {
                 if (!MaterialCompiler.CompileMaterial(material, outputDirectory, out error))
                 {
                     return false;
                 }
             }
+
+            // Serialize and save the all material instance headers
+            foreach(CapnpGen.CapMaterialInstance materialInstance in materialInstances)
+            {
+                string headerPath = Path.Combine(outputDirectory, materialInstance.Header.Name + ".material");
+                Directory.CreateDirectory(Path.GetDirectoryName(headerPath));
+                using (FileStream outStream = new FileStream(headerPath, FileMode.Create))
+                {
+                    MessageBuilder message = MessageBuilder.Create();
+                    var root = message.BuildRoot<CapnpGen.CapMaterialInstanceHeader.WRITER>();
+                    materialInstance.Header.serialize(root);
+
+                    var pump = new FramePump(outStream);
+                    pump.Send(message.Frame);
+                }
+
+                // Copy all textures used by the material instance into the Data/material folder
+                foreach(CapnpGen.CapMaterialTexture texture in materialInstance.Header.Textures)
+                {
+                    string destPath = Path.Combine(outputDirectory, texture.Path);
+                    Directory.CreateDirectory(Path.GetDirectoryName(destPath));
+                    File.Copy(texture.ContentPath, destPath, true);
+                }
+            }
+
+
+
 
             return true;
         }

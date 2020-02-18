@@ -1,11 +1,13 @@
 
 struct VS_INPUT
 {
+    float3 pos : POSITION;
     ${VSINPUT}
 };
 
 struct VS_OUTPUT
 {
+    float4 pos : SV_POSITION;
     ${VSOUTPUT}
 };
 
@@ -27,6 +29,7 @@ ConstantBuffer<MODEL_CB> modelCB : register(b1);
 VS_OUTPUT main(VS_INPUT input)
 {
     VS_OUTPUT output;
+    output.pos = mul(mul(mul(float4(input.pos, 1.0f), modelCB.model), viewCB.view), viewCB.proj);
 
     ${VSBODY}
 
