@@ -30,6 +30,8 @@ namespace Renderer
         MaterialPipelineID CreatePipeline(MaterialPipelineDesc& desc) override;
         ComputePipelineID CreatePipeline(ComputePipelineDesc& desc) override;
 
+        ModelID CreatePrimitiveModel(PrimitivePlaneDesc& desc) override;
+
         // Loading
         TextureID LoadTexture(TextureDesc& desc) override;
         ModelID LoadModel(ModelDesc& desc) override;

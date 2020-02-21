@@ -147,17 +147,17 @@ Matrix Matrix::Inverted() const
     t.z = v4 * row[1].x - v2 * row[1].y + v0 * row[1].w;
     t.w = -(v3 * row[1].x - v1 * row[1].y + v0 * row[1].z);
 
-    float inv_det = 1.0f / row[0].Dot(t);
+    float invDet = 1.0f / row[0].Dot(t);
 
-    out.row[0].x = t.x * inv_det;
-    out.row[1].x = t.y * inv_det;
-    out.row[2].x = t.z * inv_det;
-    out.row[3].x = t.w * inv_det;
+    out.row[0].x = t.x * invDet;
+    out.row[1].x = t.y * invDet;
+    out.row[2].x = t.z * invDet;
+    out.row[3].x = t.w * invDet;
 
-    out.row[0].y = -(v5 * row[0].y - v4 * row[0].z + v3 * row[0].w) * inv_det;
-    out.row[1].y = (v5 * row[0].x - v2 * row[0].z + v1 * row[0].w) * inv_det;
-    out.row[2].y = -(v4 * row[0].x - v2 * row[0].y + v0 * row[0].w) * inv_det;
-    out.row[3].y = (v3 * row[0].x - v1 * row[0].y + v0 * row[0].z) * inv_det;
+    out.row[0].y = -(v5 * row[0].y - v4 * row[0].z + v3 * row[0].w) * invDet;
+    out.row[1].y = (v5 * row[0].x - v2 * row[0].z + v1 * row[0].w) * invDet;
+    out.row[2].y = -(v4 * row[0].x - v2 * row[0].y + v0 * row[0].w) * invDet;
+    out.row[3].y = (v3 * row[0].x - v1 * row[0].y + v0 * row[0].z) * invDet;
 
     v0 = row[1].x * row[3].y - row[1].y * row[3].x;
     v1 = row[1].x * row[3].z - row[1].z * row[3].x;
@@ -166,10 +166,10 @@ Matrix Matrix::Inverted() const
     v4 = row[1].y * row[3].w - row[1].w * row[3].y;
     v5 = row[1].z * row[3].w - row[1].w * row[3].z;
 
-    out.row[0].z = (v5 * row[0].y - v4 * row[0].z + v3 * row[0].w) * inv_det;
-    out.row[1].z = -(v5 * row[0].x - v2 * row[0].z + v1 * row[0].w) * inv_det;
-    out.row[2].z = (v4 * row[0].x - v2 * row[0].y + v0 * row[0].w) * inv_det;
-    out.row[3].z = -(v3 * row[0].x - v1 * row[0].y + v0 * row[0].z) * inv_det;
+    out.row[0].z = (v5 * row[0].y - v4 * row[0].z + v3 * row[0].w) * invDet;
+    out.row[1].z = -(v5 * row[0].x - v2 * row[0].z + v1 * row[0].w) * invDet;
+    out.row[2].z = (v4 * row[0].x - v2 * row[0].y + v0 * row[0].w) * invDet;
+    out.row[3].z = -(v3 * row[0].x - v1 * row[0].y + v0 * row[0].z) * invDet;
 
     v0 = row[2].y * row[1].x - row[2].x * row[1].y;
     v1 = row[2].z * row[1].x - row[2].x * row[1].z;
@@ -178,70 +178,78 @@ Matrix Matrix::Inverted() const
     v4 = row[2].w * row[1].y - row[2].y * row[1].w;
     v5 = row[2].w * row[1].z - row[2].z * row[1].w;
 
-    out.row[0].w = -(v5 * row[0].y - v4 * row[0].z + v3 * row[0].w) * inv_det;
-    out.row[1].w = (v5 * row[0].x - v2 * row[0].z + v1 * row[0].w) * inv_det;
-    out.row[2].w = -(v4 * row[0].x - v2 * row[0].y + v0 * row[0].w) * inv_det;
-    out.row[3].w = (v3 * row[0].x - v1 * row[0].y + v0 * row[0].z) * inv_det;
+    out.row[0].w = -(v5 * row[0].y - v4 * row[0].z + v3 * row[0].w) * invDet;
+    out.row[1].w = (v5 * row[0].x - v2 * row[0].z + v1 * row[0].w) * invDet;
+    out.row[2].w = -(v4 * row[0].x - v2 * row[0].y + v0 * row[0].w) * invDet;
+    out.row[3].w = (v3 * row[0].x - v1 * row[0].y + v0 * row[0].z) * invDet;
 
     return out;
 }
 
-Matrix& Matrix::RotateX(float angle, MultiplicationType mul_type)
+Matrix& Matrix::RotateX(float angle, MultiplicationType mulType)
 {
-    Matrix rotation_matrix;
+    Matrix rotationMatrix;
     angle = Math::DegToRad(angle);
     // Left unchanged
-    rotation_matrix.up = Vector3(0.0f, Math::Cos(angle), -Math::Sin(angle));
-    rotation_matrix.at = Vector3(0.0f, Math::Sin(angle), Math::Cos(angle));
+    rotationMatrix.up = Vector3(0.0f, Math::Cos(angle), -Math::Sin(angle));
+    rotationMatrix.at = Vector3(0.0f, Math::Sin(angle), Math::Cos(angle));
 
-    return Transform(rotation_matrix, mul_type);
+    return Transform(rotationMatrix, mulType);
 }
 
-Matrix& Matrix::RotateY(float angle, MultiplicationType mul_type)
+Matrix& Matrix::RotateY(float angle, MultiplicationType mulType)
 {
-    Matrix rotation_matrix;
+    Matrix rotationMatrix;
     angle = Math::DegToRad(angle);
-    rotation_matrix.right = Vector3(Math::Cos(angle), 0.0f, Math::Sin(angle));
+    rotationMatrix.right = Vector3(Math::Cos(angle), 0.0f, Math::Sin(angle));
     // Up unchanged
-    rotation_matrix.at = Vector3(-Math::Sin(angle), 0.0f, Math::Cos(angle));
+    rotationMatrix.at = Vector3(-Math::Sin(angle), 0.0f, Math::Cos(angle));
 
-    return Transform(rotation_matrix, mul_type);
+    return Transform(rotationMatrix, mulType);
 }
 
-Matrix& Matrix::RotateZ(float angle, MultiplicationType mul_type)
+Matrix& Matrix::RotateZ(float angle, MultiplicationType mulType)
 {
-    Matrix rotation_matrix;
+    Matrix rotationMatrix;
     angle = Math::DegToRad(angle);
-    rotation_matrix.right = Vector3(Math::Cos(angle), -Math::Sin(angle), 0.0f);
-    rotation_matrix.up = Vector3(Math::Sin(angle), Math::Cos(angle), 0.0f);
+    rotationMatrix.right = Vector3(Math::Cos(angle), -Math::Sin(angle), 0.0f);
+    rotationMatrix.up = Vector3(Math::Sin(angle), Math::Cos(angle), 0.0f);
     // At unchanged
 
-    return Transform(rotation_matrix, mul_type);
+    return Transform(rotationMatrix, mulType);
 }
 
-Matrix& Matrix::Scale(Vector3 scale, MultiplicationType mul_type)
+Matrix& Matrix::RotateXYZ(Vector3& angles, MultiplicationType mulType)
 {
-    Matrix scale_matrix;
-    scale_matrix.right.x = scale.x;
-    scale_matrix.up.y = scale.y;
-    scale_matrix.at.z = scale.z;
-
-    return Transform(scale_matrix, mul_type);
+    RotateX(angles.x, mulType);
+    RotateY(angles.y, mulType);
+    RotateZ(angles.z, mulType);
+    return *this;
 }
 
-Matrix& Matrix::Scale(float scale, MultiplicationType mul_type)
+Matrix& Matrix::Scale(Vector3 scale, MultiplicationType mulType)
 {
-    Matrix scale_matrix;
-    scale_matrix.right.x = scale;
-    scale_matrix.up.y = scale;
-    scale_matrix.at.z = scale;
+    Matrix scaleMatrix;
+    scaleMatrix.right.x = scale.x;
+    scaleMatrix.up.y = scale.y;
+    scaleMatrix.at.z = scale.z;
 
-    return Transform(scale_matrix, mul_type);
+    return Transform(scaleMatrix, mulType);
 }
 
-Matrix& Matrix::Transform(const Matrix& transformation, MultiplicationType mul_type)
+Matrix& Matrix::Scale(float scale, MultiplicationType mulType)
 {
-    switch (mul_type)
+    Matrix scaleMatrix;
+    scaleMatrix.right.x = scale;
+    scaleMatrix.up.y = scale;
+    scaleMatrix.at.z = scale;
+
+    return Transform(scaleMatrix, mulType);
+}
+
+Matrix& Matrix::Transform(const Matrix& transformation, MultiplicationType mulType)
+{
+    switch (mulType)
     {
     case PRE:
     {

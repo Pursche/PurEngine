@@ -12,6 +12,9 @@ public:
 private:
 
 private:
+    bool _mouseControlMode = false;
+    Vector3 _position;
+    Vector3 _rotation;
     Matrix _viewMatrix;
     f32 _movementSpeed = 3.0f;
     f32 _rotationSpeed = 90.0f;

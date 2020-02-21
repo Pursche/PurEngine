@@ -83,6 +83,11 @@ namespace Renderer
         return _pipelineHandler->CreatePipeline(_device, _shaderHandler, _imageHandler, desc);
     }
 
+    ModelID RendererDX12::CreatePrimitiveModel(PrimitivePlaneDesc& desc)
+    {
+        return _modelHandler->CreatePrimitiveModel(_device, _commandListHandler, desc);
+    }
+
     TextureID RendererDX12::LoadTexture(TextureDesc& desc)
     {
         return _imageHandler->LoadTexture(_device, _commandListHandler, desc);

@@ -53,18 +53,28 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
 
     Renderer::RenderLayer& mainLayer = renderer->GetRenderLayer(MAIN_RENDER_LAYER);
 
-    Renderer::MaterialDesc materialDesc;
-    materialDesc.path = "Data/materials/DebugBasicPBS.material";
-    Renderer::MaterialID material = renderer->LoadMaterial(materialDesc);
+    Renderer::MaterialDesc cubeMaterialDesc;
+    cubeMaterialDesc.path = "Data/materials/DebugBasicPBS.material";
+    Renderer::MaterialID cubeMaterial = renderer->LoadMaterial(cubeMaterialDesc);
     
-    Renderer::ModelDesc modelDesc;
-    modelDesc.path = "Data/models/cube.model";
+    Renderer::ModelDesc cubeModelDesc;
+    cubeModelDesc.path = "Data/models/cube.model";
 
-    Renderer::ModelID cubeModel = renderer->LoadModel(modelDesc);
-    Renderer::InstanceData cubeInstance;
-    cubeInstance.modelMatrix = Matrix(); // Move, rotate etc the model here
+    Renderer::ModelID cubeModel = renderer->LoadModel(cubeModelDesc);
+    Renderer::InstanceData cubeInstance(renderer);
+    cubeInstance.position = Vector3(0, 1, 0);
+    //cubeInstance.rotation = Vector3(45, 45, 0);
+    cubeInstance.scale = Vector3(1, 1, 1);
 
-    mainLayer.RegisterModel(material, cubeModel, &cubeInstance); // This registers a cube model to be drawn in this layer with cubeInstance's model constantbuffer
+    Renderer::PrimitivePlaneDesc groundDesc;
+    groundDesc.size = Vector2(1, 1);
+    groundDesc.texCoordEnd = Vector2(10, 10);
+    Renderer::ModelID groundModel = renderer->CreatePrimitiveModel(groundDesc);
+
+    Renderer::InstanceData groundInstance(renderer);
+    groundInstance.position = Vector3(0, 0, 0);
+    groundInstance.rotation = Vector3(270, 0, 0);
+    groundInstance.scale = Vector3(10, 10, 1);
 
     // ViewConstantBuffer will be a constant buffer which holds information about our Camera, like our View and Projection matrices
     struct ViewConstantBuffer
@@ -99,15 +109,6 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         viewConstantBuffer.Apply(1);
     }
 
-    struct ModelConstantBuffer
-    {
-        Vector4 colorMultiplier; // 16 bytes
-        Matrix modelMatrix; // 64 bytes
-
-        float padding[128] = {};
-    };
-
-    Renderer::ConstantBuffer<ModelConstantBuffer> modelConstantBuffer = renderer->CreateConstantBuffer<ModelConstantBuffer>();
     Memory::StackAllocator frameAllocator(FRAME_ALLOCATOR_SIZE);
     frameAllocator.Init();
 
@@ -134,7 +135,8 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
         viewConstantBuffer.Apply(frameIndex);
 
         // Register models to be rendered
-        mainLayer.RegisterModel(material, cubeModel, &cubeInstance);
+        mainLayer.RegisterModel(cubeMaterial, cubeModel, &cubeInstance);
+        mainLayer.RegisterModel(cubeMaterial, groundModel, &groundInstance);
 
         // Create a framegraph
         Renderer::RenderGraphDesc renderGraphDesc;
@@ -225,12 +227,10 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                         for (auto const& instance : instances)
                         {
                             // Update model constant buffer
-                            modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
-                            modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
-                            modelConstantBuffer.Apply(frameIndex);
+                            instance->Apply(frameIndex);
 
                             // Set model constant buffer
-                            commandList.SetConstantBuffer(1, modelConstantBuffer.GetGPUResource(frameIndex));
+                            commandList.SetConstantBuffer(1, instance->GetGPUResource(frameIndex));
 
                             // Draw
                             commandList.Draw(modelID);
@@ -306,12 +306,10 @@ INT WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/,
                             for (auto const& instance : instances)
                             {
                                 // Update model constant buffer
-                                modelConstantBuffer.resource.modelMatrix = instance->modelMatrix;
-                                modelConstantBuffer.resource.colorMultiplier = instance->colorMultiplier;
-                                modelConstantBuffer.Apply(frameIndex);
+                                instance->Apply(frameIndex);
 
                                 // Set model constant buffer
-                                commandList.SetConstantBuffer(1, modelConstantBuffer.GetGPUResource(frameIndex));
+                                commandList.SetConstantBuffer(1, instance->GetGPUResource(frameIndex));
 
                                 // Draw
                                 commandList.Draw(modelID);

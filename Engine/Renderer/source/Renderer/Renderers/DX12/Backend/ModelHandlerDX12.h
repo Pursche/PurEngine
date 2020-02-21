@@ -4,6 +4,7 @@
 #include "d3dx12.h"
 
 #include "../../../Descriptors/ModelDesc.h"
+#include "../../../Descriptors/PrimitiveModelDesc.h"
 
 namespace Renderer
 {
@@ -17,6 +18,8 @@ namespace Renderer
         public:
             ModelHandlerDX12();
             ~ModelHandlerDX12();
+
+            ModelID CreatePrimitiveModel(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, const PrimitivePlaneDesc& desc);
 
             ModelID LoadModel(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, const ModelDesc& desc);
 

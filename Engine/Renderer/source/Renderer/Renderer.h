@@ -18,6 +18,7 @@
 #include "Descriptors/ImageDesc.h"
 #include "Descriptors/DepthImageDesc.h"
 #include "Descriptors/ModelDesc.h"
+#include "Descriptors/PrimitiveModelDesc.h"
 #include "Descriptors/MaterialDesc.h"
 
 class Window;
@@ -51,6 +52,8 @@ namespace Renderer
 
             return constantBuffer;
         }
+
+        virtual ModelID CreatePrimitiveModel(PrimitivePlaneDesc& desc) = 0;
 
         // Loading
         virtual TextureID LoadTexture(TextureDesc& desc) = 0;

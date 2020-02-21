@@ -34,6 +34,12 @@ namespace Renderer
 
         Backend::ConstantBufferBackend* backend = nullptr;
 
+
+        ConstantBuffer(ConstantBuffer<T>& copy)
+        {
+            backend = copy.backend;
+            resource = copy.resource;
+        }
     protected:
         ConstantBuffer() {}; // This has to be created through Renderer::CreateConstantBuffer<T>
 

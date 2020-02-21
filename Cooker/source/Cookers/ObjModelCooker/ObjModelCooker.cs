@@ -106,7 +106,7 @@ namespace Cooker.Cookers
 
                 // Because .obj stores vertex positions, vertex texcoords and vertex normals separately and without duplication we need to "unpack" combined vertices from this data
                 // Each .obj model has a list of "groups" which represent submeshes
-                // Each group has a list of faces which represent quads, they have 4 "indices" that point to vertex positions, vertex texcoords and vertex normals separately
+                // Each group has a list of faces which represent quads, they have 3-4 "indices" that point to vertex positions, vertex texcoords and vertex normals separately
                 // We need to iterate over these, and then build one combined vertex for each unique combination of position, texcoord and normal
 
                 // Convert indices
@@ -119,26 +119,51 @@ namespace Cooker.Cookers
                 {
                     foreach (Face face in group.Faces)
                     {
-                        Debug.Assert(face.Count == 4); // I haven't seen a model where faces don't have 4 indices yet
-
                         UInt32[] combinedIndices = new UInt32[face.Count];
-                        for(int i = 0; i < face.Count; i++)
+
+                        for (int i = 0; i < face.Count; i++)
                         {
                             CapnpGen.CapVector3 position = vertexPositions[face[i].VertexIndex - 1];
-                            CapnpGen.CapVector3 normal = vertexNormals[face[i].NormalIndex - 1];
-                            CapnpGen.CapVector2 texCoord = vertexTexCoords[face[i].TextureIndex - 1];
+
+                            int normalIndex = face[i].NormalIndex;
+                            CapnpGen.CapVector3 normal = new CapnpGen.CapVector3();
+                            normal.Y = 1;
+                            if (normalIndex > 0)
+                                normal = vertexNormals[normalIndex - 1];
+
+                            int texCoordIndex = face[i].TextureIndex;
+
+                            CapnpGen.CapVector2 texCoord = new CapnpGen.CapVector2();
+
+                            if (texCoordIndex > 0)
+                                texCoord = vertexTexCoords[texCoordIndex - 1];
+
                             combinedIndices[i] = CombineVertex(position, normal, texCoord, ref combinedVertices);
                         }
 
-                        // We split the face (quad) into two triangles, the first one with index 0 1 and 2
-                        indices.Add(combinedIndices[0]);
-                        indices.Add(combinedIndices[1]);
-                        indices.Add(combinedIndices[2]);
+                        if (face.Count == 4)
+                        {
+                            // We split the face (quad) into two triangles, the first one with index 0 1 and 2
+                            indices.Add(combinedIndices[0]);
+                            indices.Add(combinedIndices[1]);
+                            indices.Add(combinedIndices[2]);
 
-                        // The second one with index 2 3 and 0
-                        indices.Add(combinedIndices[2]);
-                        indices.Add(combinedIndices[3]);
-                        indices.Add(combinedIndices[0]);
+                            // The second one with index 2 3 and 0
+                            indices.Add(combinedIndices[2]);
+                            indices.Add(combinedIndices[3]);
+                            indices.Add(combinedIndices[0]);
+                        }
+                        else if (face.Count == 3)
+                        {
+                            // This kind of face only has one triangle, so it's simple
+                            indices.Add(combinedIndices[0]);
+                            indices.Add(combinedIndices[1]);
+                            indices.Add(combinedIndices[2]);
+                        }
+                        else
+                        {
+                            Debug.Assert(false); // I haven't seen a model where faces don't have 4 or 3 indices yet
+                        }
                     }
                 }
 

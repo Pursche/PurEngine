@@ -183,7 +183,7 @@ InputStreamMessageReader::InputStreamMessageReader(
   size_t totalWords = segment0Size;
 
   // Reject messages with too many segments for security reasons.
-  KJ_REQUIRE(segmentCount < 512, "Message has too many segments.") {
+  KJ_REQUIRE(segmentCount < 5120, "Message has too many segments.") {
     segmentCount = 1;
     segment0Size = 1;
     break;

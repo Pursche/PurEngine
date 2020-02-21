@@ -31,6 +31,40 @@ namespace Renderer
             _models.clear();
         }
 
+        ModelID ModelHandlerDX12::CreatePrimitiveModel(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, const PrimitivePlaneDesc& desc)
+        {
+            size_t handle = _models.size();
+            assert(handle < ModelID::MaxValue());
+            using type = type_safe::underlying_type<ModelID>;
+
+            Model model;
+            
+            Vector2 halfSize = Vector2(desc.size.x / 2.0f, desc.size.y / 2.0f);
+
+            TempModelData modelData;
+
+            // Push vertices
+            modelData.vertices.push_back(Vertex(Vector3(-halfSize.x, halfSize.y, 0.0f), Vector3(0, 1, 0), Vector2(desc.texCoordStart.x, desc.texCoordStart.y)));
+            modelData.vertices.push_back(Vertex(Vector3(halfSize.x, halfSize.y, 0.0f), Vector3(0, 1, 0), Vector2(desc.texCoordEnd.x, desc.texCoordStart.y)));
+            modelData.vertices.push_back(Vertex(Vector3(-halfSize.x, -halfSize.y, 0.0f), Vector3(0, 1, 0), Vector2(desc.texCoordStart.x, desc.texCoordEnd.y)));
+            modelData.vertices.push_back(Vertex(Vector3(halfSize.x, -halfSize.y, 0.0f), Vector3(0, 1, 0), Vector2(desc.texCoordEnd.x, desc.texCoordEnd.y)));
+
+            // Push indices
+            // First triangle
+            modelData.indices.push_back(0);
+            modelData.indices.push_back(1);
+            modelData.indices.push_back(2);
+            // Second triangle
+            modelData.indices.push_back(1);
+            modelData.indices.push_back(3);
+            modelData.indices.push_back(2);
+
+            InitModel(device, commandListHandler, model, modelData);
+
+            _models.push_back(model);
+            return ModelID(static_cast<type>(handle));
+        }
+
         ModelID ModelHandlerDX12::LoadModel(RenderDeviceDX12* device, CommandListHandlerDX12* commandListHandler, const ModelDesc& desc)
         {
             size_t handle = _models.size();
@@ -45,7 +79,6 @@ namespace Renderer
             InitModel(device, commandListHandler, model, modelData);
 
             _models.push_back(model);
-
             return ModelID(static_cast<type>(handle));
         }
 
@@ -82,6 +115,7 @@ namespace Renderer
             CapModel::Reader capModel = iStreamReader.getRoot<CapModel>();
 
             // Read vertices
+            data.vertices.reserve(capModel.getVertices().size());
             for (CapVertex::Reader capVertex : capModel.getVertices())
             {
                 Vector3 position = Vector3(capVertex.getPosition().getX(), capVertex.getPosition().getY(), capVertex.getPosition().getZ());
@@ -92,6 +126,7 @@ namespace Renderer
             }
 
             // Read indices
+            data.indices.reserve(capModel.getIndices().size());
             for (u32 index : capModel.getIndices())
             {
                 data.indices.push_back(index);

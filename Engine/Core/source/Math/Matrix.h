@@ -54,7 +54,6 @@ public:
     Matrix& operator*=(const Matrix& other);
     Matrix& operator*=(const float scalar);
     Matrix& operator+=(const Matrix& other);
-    Matrix& operator/=(const float scalar);
 
     Matrix& Transpose();
     Matrix Transposed() const;
@@ -65,6 +64,7 @@ public:
     Matrix& RotateX(float angle, MultiplicationType mulType);
     Matrix& RotateY(float angle, MultiplicationType mulType);
     Matrix& RotateZ(float angle, MultiplicationType mulType);
+    Matrix& RotateXYZ(Vector3& angle, MultiplicationType mulType);
 
     Matrix& Scale(Vector3 scale, MultiplicationType mulType);
     Matrix& Scale(float scale, MultiplicationType mulType);
